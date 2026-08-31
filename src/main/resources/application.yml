@@ -1,0 +1,19 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: quickbasket
+
+quickcommerce:
+  api:
+    base-url: ${QUICKCOMMERCE_API_BASE_URL:https://quickcommerceapi.com}
+    key: ${QUICKCOMMERCE_API_KEY:mock-local-key}
+    active-provider: ${ACTIVE_PROVIDER:mock}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
