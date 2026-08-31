@@ -15,22 +15,26 @@
 ### Technology Matrix:
 | Topic | What It Is | Why We Use It | Where Used in QuickBasket | Key Takeaway / Interview Question |
 | :--- | :--- | :--- | :--- | :--- |
-| **Java Records** | Immutable data carrier class type in Java 17+ | Boilerplate-free, automatic `equals`, `hashCode`, `toString`, thread-safe | `dto/*.java` | *Q: Difference between Java record and standard class?* A: Records are final, immutable data transparent wrappers with auto-generated accessors. |
-| **Strategy Pattern** | Behavioral design pattern defining family of algorithms | Allows swapping search providers without touching `ProductService` | `service/provider/ProductProvider.java` | *Q: Why use interfaces over concrete classes?* A: Adheres to Dependency Inversion Principle (SOLID). |
+| **Java Records** | Immutable data transparent carrier in Java 17+ | Reduces DTO boilerplate (constructors, getters, equals/hashCode) | `dto/*.java` | *Q: Why use records for DTOs?* A: Thread-safe, shallow immutable, concise, auto-generated component accessors. |
+| **Strategy Pattern** | Behavioral pattern family of interchangeable algorithms | Decouples product search logic from vendor API integrations | `service/provider/ProductProvider.java` | *Q: How does Spring support Strategy pattern?* A: Spring auto-injects all matching beans into `List<ProductProvider>`. |
 
 ---
 
 ## 2. Spring Boot 3.2+ & Web Framework
 
 ### Core Concepts & Strategy
-* **`RestClient`**: Modern synchronous HTTP client introduced in Spring 6 / Spring Boot 3.1. Replaces legacy `RestTemplate` without pulling in WebFlux reactive dependencies.
+* **Dependency Injection (DI)**: Spring IoC container injects dependencies via constructors (`ProductComparisonService`), encouraging testability with Mockito.
+* **Spring `RestClient`**: Modern synchronous HTTP client introduced in Spring 6 / Spring Boot 3.1. Replaces legacy `RestTemplate` without WebFlux overhead.
+* **OpenAPI 3 / Swagger**: Auto-generates interactive API UI documentation at `/swagger-ui.html`.
 * **`ProblemDetail` (RFC 7807)**: Standardized HTTP error responses for `@RestControllerAdvice`.
 
 ### Technology Matrix:
 | Topic | What It Is | Why We Use It | Where Used in QuickBasket | Key Takeaway / Interview Question |
 | :--- | :--- | :--- | :--- | :--- |
+| **Dependency Injection** | IoC principle where Spring manages bean lifecycles | Promotes loose coupling, easier mocking during unit tests | `ProductComparisonService.java` | *Q: Why prefer constructor injection over `@Autowired` field injection?* A: Immutability (final fields), no reflection overhead, easier unit testing. |
 | **Spring `RestClient`** | Fluent synchronous HTTP client | Clean API, built-in Jackson mapping, non-reactive | `QuickCommerceApiProvider.java` | *Q: Why choose RestClient over WebClient or RestTemplate?* A: RestTemplate is in maintenance mode; WebClient requires WebFlux reactive overhead. |
 | **ProblemDetail** | RFC 7807 spec error response format | Consistent API error structure across all endpoints | `exception/GlobalExceptionHandler.java` | *Q: How do you standardize REST API error handling in Spring Boot 3?* A: Use `@RestControllerAdvice` returning `ProblemDetail`. |
+| **`@WebMvcTest`** | Spring Boot test slice annotation for MVC controllers | Unit tests HTTP mapping/validation without full server startup | `ProductComparisonControllerTest.java` | *Q: What is the difference between `@SpringBootTest` and `@WebMvcTest`?* A: `@WebMvcTest` loads only web layer beans (Controllers, Converters), mock-injecting services for faster tests. |
 
 ---
 
