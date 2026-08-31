@@ -140,3 +140,48 @@ Cron job executes silently every 6 hours, updates prices in the database, and fi
 
 ### Interview Concepts Learned
 * Circuit breaker states (CLOSED, OPEN, HALF_OPEN), integration testing vs unit testing, Testcontainers lifecycle, Docker container linking, CI/CD automation.
+
+---
+
+## 📅 WEEKS 13–14: Cloud Deployment & Public Infrastructure
+
+### Topics to Learn
+* Free-tier cloud infrastructure evaluation, container deployment, cloud database provisioning, environment secret management, domain/SSL setup.
+
+### Coding Tasks
+* Package Spring Boot application as an optimized Docker image.
+* Deploy PostgreSQL database and Spring Boot app to a free-tier/open-source cloud environment.
+* Configure environment secrets (`QUICKCOMMERCE_API_KEY`, `JWT_SECRET`) securely.
+* Verify live public REST API endpoints and Swagger UI accessibility.
+
+### Expected Output
+Publicly accessible live HTTPS REST API endpoints for QuickBasket hosted on a cloud platform.
+
+### Git Milestone
+`feat: deploy QuickBasket modular monolith backend to cloud environment`
+
+### Interview Concepts Learned
+* Cloud deployment pipelines, environment configuration management, production container execution, cold-start characteristics, live API hosting.
+
+---
+
+## 📅 WEEKS 15–16: AI Intelligence Layer (Open-Source & Optional)
+
+### Topics to Learn
+* Local LLM integration (Ollama REST API), natural language query parsing, hybrid product matching embeddings, AI provider abstraction pattern, graceful fallback strategies.
+
+### Coding Tasks
+* Define `AiProvider` interface and implement `MockAiProvider` & `OllamaAiProvider`.
+* Implement natural-language query parsing (`AiSearchCriteria`) to extract query parameters.
+* Implement natural-language price comparison and 30-day price trend explanation generators.
+* Wrap AI calls in circuit breakers to guarantee `AI_ENABLED=false` graceful fallback.
+
+### Expected Output
+Natural-language search capability and human-readable price trend explanations powered by an open-source local LLM while maintaining 100% core backend availability when AI is offline.
+
+### Git Milestone
+`feat: implement open-source Ollama AI provider abstraction, NL search parsing, and trend explanations`
+
+### Interview Concepts Learned
+* AI/LLM integration patterns in Spring Boot, prompt engineering for structured outputs, AI provider abstraction, graceful degradation under LLM latency/failures.
+

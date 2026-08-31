@@ -81,3 +81,16 @@
 * **Decision**: Provide a master `docker-compose.yml` file.
 * **Rationale**: Allows spinning up the full application stack in 1 step (`docker compose up`) across Linux and Windows.
 * **Trade-Off**: Requires Docker Desktop or Docker Engine installed on local machine.
+
+---
+
+## ADR-009: Optional Open-Source AI Strategy & Public Cloud Deployment
+
+* **Status**: **ACCEPTED**
+* **Context**: Adding AI intelligence capabilities (natural language query parsing, price trend summaries) and cloud deployment without overshadowing core Java 21 / Spring Boot backend learning goals.
+* **Decision**: 
+  1. Treat AI as an **optional, open-source intelligence layer** (`AiProvider` interface with `OllamaAiProvider` and `MockAiProvider`). Core backend business logic remains 100% deterministic and functional when `AI_ENABLED=false`.
+  2. Implement cloud deployment using free-tier / open-source friendly infrastructure as a dedicated Phase 11 learning milestone prior to AI introduction.
+* **Rationale**: Ensures the project remains focused on backend software engineering fundamentals while demonstrating production-style AI integration patterns without vendor lock-in or recurring API costs.
+* **Trade-Off**: Local development requires running Ollama for local LLM inference when AI features are tested; cloud deployments execute with `AI_ENABLED=false` or lightweight hosted inference models.
+

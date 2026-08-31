@@ -169,3 +169,15 @@ A phase is complete ONLY when:
 6. Conventional commit with detailed body is created.
 7. Phase branch is pushed to remote repository.
 8. Next phase branch is branched cleanly for subsequent work.
+
+---
+
+## 11. AI & Cloud Governance Rules
+
+* **AI Rule**: AI must solve a demonstrated product or engineering problem. AI must not be introduced merely because it is currently popular.
+* **Deterministic Core Rule**: Core business logic, calculations, pricing comparisons, availability decisions, and numerical analytics must remain deterministic and independently testable. AI must never invent underlying numerical data.
+* **AI Optionality Rule**: QuickBasket must remain fully functional when AI services are unavailable (`AI_ENABLED=false`).
+* **Open-Source Rule**: Prefer open-source technologies and free/self-hosted solutions (e.g., Ollama) whenever they provide a reasonable technical solution.
+* **Cloud Learning Rule**: Cloud deployment is part of the project's learning objectives, not merely a hosting requirement.
+* **Cost Rule**: Avoid introducing paid services when an adequate free or open-source alternative exists.
+
