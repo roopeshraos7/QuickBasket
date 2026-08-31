@@ -94,3 +94,17 @@
 * **Rationale**: Ensures the project remains focused on backend software engineering fundamentals while demonstrating production-style AI integration patterns without vendor lock-in or recurring API costs.
 * **Trade-Off**: Local development requires running Ollama for local LLM inference when AI features are tested; cloud deployments execute with `AI_ENABLED=false` or lightweight hosted inference models.
 
+---
+
+## ADR-010: Deterministic Product Matching & External SKU Identification
+
+* **Status**: **ACCEPTED**
+* **Context**: External providers return vendor-specific SKUs and item names. We need a clean strategy to uniquely identify platform offers and group them into canonical products in PostgreSQL without premature AI or vector database complexity.
+* **Decision**: 
+  1. `PlatformOfferEntity` uniquely identifies vendor items using the composite key `(platform_id, external_item_id)`.
+  2. Canonical `ProductEntity` matching uses deterministic normalized attributes where available (`brand + normalized product name + quantity + unit`). Search terms are NOT used directly as canonical product names.
+  3. The matching component (`ProductMatcher`) is modularized so it can evolve from simple deterministic rules (Phase 2) to enhanced SKU matching, and eventually optional AI-assisted matching (Phase 12) without breaking the core domain or database schema.
+* **Rationale**: Maintains 100% deterministic correctness and isolation of database entity records while leaving a clean path for architectural evolution.
+* **Trade-Off**: Basic rule-based matching may create separate `ProductEntity` entries for slight spelling variations until enhanced rule matching is added.
+
+
