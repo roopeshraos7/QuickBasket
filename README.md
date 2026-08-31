@@ -26,12 +26,15 @@ QuickBasket aggregates, normalizes, and compares real-time product pricing, stoc
 All architectural and project specifications are documented in the repository:
 
 * 📄 **[`PROJECT_SPEC.md`](PROJECT_SPEC.md)**: Master project specification & feature roadmap.
-* 🏗️ **[`ARCHITECTURE.md`](ARCHITECTURE.md)**: System architecture, sequence diagrams & resiliency flow.
-* 🔌 **[`API_SPEC.md`](API_SPEC.md)**: REST API specification & RFC 7807 error format.
-* 🗄️ **[`DATABASE.md`](DATABASE.md)**: PostgreSQL ERD, DDL scripts & composite indexing strategy.
-* 🗺️ **[`ROADMAP.md`](ROADMAP.md)**: Detailed 8–12 week development and learning roadmap.
-* 🎓 **[`LEARNING.md`](LEARNING.md)**: Technology-by-technology interview preparation matrix.
-* 📋 **[`DECISIONS.md`](DECISIONS.md)**: Architectural Decision Records (ADRs 001–008).
+* 🏗️ **[`ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)**: System architecture, sequence diagrams & resiliency flow.
+* 🔮 **[`FUTURE-MICROSERVICES.md`](docs/architecture/FUTURE-MICROSERVICES.md)**: Modular Monolith vs Microservices evaluation.
+* 📋 **[`DECISIONS.md`](docs/architecture/DECISIONS.md)**: Architectural Decision Records (ADRs 001–008).
+* 🔌 **[`API_SPEC.md`](docs/api/API_SPEC.md)**: REST API specification & RFC 7807 error format.
+* 🗄️ **[`DATABASE.md`](docs/database/DATABASE.md)**: PostgreSQL ERD, DDL scripts & composite indexing strategy.
+* 📏 **[`PROJECT_RULES.md`](docs/development/PROJECT_RULES.md)**: Permanent development rules & project governance.
+* 🗺️ **[`ROADMAP.md`](docs/development/ROADMAP.md)**: Detailed 8–12 week development and learning roadmap.
+* 📝 **[`DEVELOPMENT_LOG.md`](docs/development/DEVELOPMENT_LOG.md)**: Chronological engineering journal.
+* 🎓 **[`LEARNING.md`](docs/learning/LEARNING.md)**: Technology-by-technology interview preparation matrix.
 
 ---
 

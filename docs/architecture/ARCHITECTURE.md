@@ -8,7 +8,9 @@
 
 ## 1. High-Level Modular Monolith Overview
 
-QuickBasket is designed as a clean **Modular Monolith**. Rather than prematurely splitting into distributed microservices (which introduces network latency, distributed transactions, and deployment overhead), the application is organized into decoupled domain modules inside a single Spring Boot executable.
+QuickBasket will initially use a modular monolith architecture. As the project evolves, we will evaluate whether individual modules should eventually be extracted into independently deployable services. QuickBasket starts as a modular monolith. Future extraction into microservices may be evaluated later based on actual technical requirements and measured system characteristics. Microservice adoption is not currently committed.
+
+Rather than prematurely splitting into distributed microservices (which introduces network latency, distributed transactions, and deployment overhead), the application is organized into decoupled domain modules inside a single Spring Boot executable.
 
 ```text
                                   ┌──────────────────────────┐
