@@ -23,18 +23,22 @@ public class ProductComparisonService {
     private static final Logger log = LoggerFactory.getLogger(ProductComparisonService.class);
 
     private final List<ProductProvider> providers;
+    private final ProductCatalogService catalogService;
     private final String activeProviderCode;
 
     public ProductComparisonService(
             List<ProductProvider> providers,
+            ProductCatalogService catalogService,
             @Value("${quickcommerce.api.active-provider:mock}") String activeProviderCode
     ) {
         this.providers = providers;
+        this.catalogService = catalogService;
         this.activeProviderCode = activeProviderCode;
     }
 
     /**
-     * Search products across platforms using the configured active provider and compute best options.
+     * Search products across platforms using the configured active provider,
+     * persist/update offers and price history, and compute best options.
      *
      * @param query     Product search query
      * @param latitude  User location latitude
@@ -46,6 +50,10 @@ public class ProductComparisonService {
         log.info("Executing product search using provider '{}' for query '{}'", activeProviderCode, query);
 
         List<NormalizedProductOffer> offers = provider.searchProducts(query, latitude, longitude);
+        
+        // Transparently persist offers and price history snapshot
+        catalogService.saveOffers(query, offers);
+
         BestOption bestOption = calculateBestOption(offers);
 
         return new ProductSearchResponse(
