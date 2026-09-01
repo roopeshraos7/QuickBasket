@@ -24,12 +24,15 @@ class ProductComparisonServiceTest {
     @Mock
     private ProductProvider mockProvider;
 
+    @Mock
+    private ProductCatalogService catalogService;
+
     private ProductComparisonService comparisonService;
 
     @BeforeEach
     void setUp() {
         when(mockProvider.supports(MockProductProvider.PROVIDER_CODE)).thenReturn(true);
-        comparisonService = new ProductComparisonService(List.of(mockProvider), "mock");
+        comparisonService = new ProductComparisonService(List.of(mockProvider), catalogService, "mock");
     }
 
     @Test
