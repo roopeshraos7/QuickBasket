@@ -109,18 +109,20 @@
 
 ---
 
-## ADR-011: Unified Provider Strategy for Quick-Commerce and E-Commerce (Amazon & Flipkart)
+## ADR-011: Multi-Provider Strategy for Quick-Commerce and E-Commerce (Amazon Creators API & Flipkart)
 
-* **Status**: **PROPOSED / APPROVED IN DESIGN**
-* **Context**: QuickBasket is expanding from quick-commerce (Blinkit, Zepto, Instamart, BigBasket) to traditional e-commerce (Amazon, Flipkart). We need a clean provider architecture that handles different delivery semantics (minutes vs. days) and seller dynamics without breaking the existing core domain.
+* **Status**: **APPROVED IN DESIGN**
+* **Context**: QuickBasket is expanding from quick-commerce (Blinkit, Zepto, Instamart, BigBasket) to traditional e-commerce (Amazon, Flipkart). We need a resilient provider architecture that handles different delivery semantics (minutes vs. days), multi-seller dynamics, API eligibility constraints, and high-concurrency external I/O without degrading core system performance.
 * **Decision**:
-  1. **Retain `ProductProvider` as Core Strategy**: Keep `ProductProvider` as the unified Strategy interface. Avoid creating separate top-level `CommerceProvider` interfaces.
-  2. **Classify Platform Types**: Add `platform_type` (`QUICK_COMMERCE` vs `ECOMMERCE`) to `PlatformEntity` and `platforms` DB table.
-  3. **Domain Offer Extension**: Extend `NormalizedProductOffer` DTO with optional `sellerName`, `deliveryEtaText` (e.g. "Tomorrow by 10 PM", "2-3 Days"), and `shippingFee`.
-  4. **Parallel Provider Execution & Fault Tolerance**: Refactor `ProductComparisonService` to execute active providers concurrently using `CompletableFuture` with individual exception handling so single-provider outages or API rate limit failures do not block the search response.
-  5. **API Credential Resilience**: Amazon PA-API 5.0 requires 3 qualifying sales within 30 days. Configure `AmazonProvider` and `FlipkartProvider` with feature flags (`quickbasket.providers.amazon.enabled: false`) and mock fallbacks (`MockECommerceProvider`) for local dev when official API eligibility is absent.
-* **Rationale**: Preserves existing clean API contracts while supporting multi-seller e-commerce marketplaces and fast quick-commerce platforms in a single unified architecture.
-* **Trade-Off**: E-commerce titles are significantly longer and require title normalization heuristics during SKU matching.
+  1. **Unified Provider Strategy**: Retain `ProductProvider` as the core Strategy interface. Introduce `PlatformType` enum (`QUICK_COMMERCE`, `ECOMMERCE`) and add `platform_type` column to `platforms` table.
+  2. **Amazon Creators API Migration**: Target the official **Amazon Creators API** (OAuth 2.0 Client Credentials) replacing deprecated PA-API 5.0. Because Creators API requires 10 qualifying sales/30 days, implement `AmazonCreatorsApiProvider` behind a feature flag (`quickbasket.providers.amazon.enabled: false`) with a `MockECommerceProvider` fallback for local dev.
+  3. **Structured Delivery Model**: Encapsulate offer delivery in a `DeliveryEstimate` DTO (`type`: INSTANT/EXPRESS/STANDARD, `etaMinutes`, `deliveryText`, `shippingFee`) rather than assuming quick-commerce minutes only.
+  4. **Multi-Pack SKU Matching (ADR-010 Expansion)**: Enhance title parsing to extract brand, single-unit volume (`1000ml`), and pack multiplier (`Pack of 2` -> `pack2`), creating deterministic canonical key `brand_name_totalvolume_packCount` to prevent matching 1L single items with 2L multi-packs.
+  5. **Java 21 Virtual Thread Concurrency**: Enable Spring Boot 3.2 Virtual Threads (`spring.threads.virtual.enabled: true`). Execute provider HTTP requests concurrently using `CompletableFuture.supplyAsync(..., applicationTaskExecutor)` with 1.5s per-provider timeouts and fault isolation (`.exceptionally(...)`).
+  6. **Per-Provider Redis Slice Caching**: Cache individual provider response slices in Redis under `qb:provider:{code}:{lat}:{lng}:{query}` with 5-minute TTL to allow instant partial cache hits and dynamic category aggregation.
+* **Rationale**: Preserves clean API contracts, guarantees sub-second response times across 6+ providers, and insulates the backend from external API eligibility blocks.
+* **Trade-Off**: Per-provider Redis caching requires pipeline/MGET assembly in `ProductComparisonService`.
+
 
 
 
