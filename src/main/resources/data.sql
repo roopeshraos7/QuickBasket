@@ -1,4 +1,4 @@
-INSERT INTO platforms (code, display_name) VALUES ('BLINKIT', 'Blinkit') ON CONFLICT (code) DO NOTHING;
-INSERT INTO platforms (code, display_name) VALUES ('ZEPTO', 'Zepto') ON CONFLICT (code) DO NOTHING;
-INSERT INTO platforms (code, display_name) VALUES ('INSTAMART', 'Swiggy Instamart') ON CONFLICT (code) DO NOTHING;
-INSERT INTO platforms (code, display_name) VALUES ('BIGBASKET', 'BigBasket') ON CONFLICT (code) DO NOTHING;
+INSERT INTO platforms (id, code, display_name, is_active) VALUES (1, 'BLINKIT', 'Blinkit', true);
+INSERT INTO platforms (id, code, display_name, is_active) VALUES (2, 'ZEPTO', 'Zepto', true);
+INSERT INTO platforms (id, code, display_name, is_active) VALUES (3, 'INSTAMART', 'Swiggy Instamart', true);
+INSERT INTO platforms (id, code, display_name, is_active) VALUES (4, 'BIGBASKET', 'BigBasket', true);
