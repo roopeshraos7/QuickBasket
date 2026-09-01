@@ -39,7 +39,20 @@
 ---
 
 ## 3. Databases & Persistence (PostgreSQL 16 & JPA)
-*(To be populated during Weeks 3–4 implementation)*
+
+### Core Concepts & Strategy
+* **Spring Data JPA**: Abstraction layer built on Hibernate ORM providing automatic repository implementation (`JpaRepository`).
+* **JPA Entity Mapping**: `@Entity`, `@Table`, `@Id`, `@GeneratedValue(strategy = GenerationType.IDENTITY)`, `@Column`, `@ManyToOne(fetch = FetchType.LAZY)`.
+* **Composite Indexing**: Optimized SQL queries for timeseries price history (`product_id, platform_id, recorded_at DESC`).
+* **Spring `@Transactional`**: Transaction demarcation ensuring atomic snapshot upserts and timeseries history logging.
+
+### Technology Matrix:
+| Topic | What It Is | Why We Use It | Where Used in QuickBasket | Key Takeaway / Interview Question |
+| :--- | :--- | :--- | :--- | :--- |
+| **Spring Data JPA** | Data access abstraction on top of JPA/Hibernate | Eliminates JDBC boilerplate, provides CRUD/Paging methods | `repository/*.java` | *Q: How do custom queries work in Spring Data JPA?* A: Derived query methods parsing method names (e.g. `findByCode`). |
+| **FetchType.LAZY** | Hibernate entity loading strategy | Prevents N+1 query overhead by fetching related entities on demand | `PlatformOfferEntity.java` | *Q: Why prefer LAZY over EAGER loading for `@ManyToOne`?* A: EAGER executes immediate SQL joins/queries, degrading performance. |
+| **Composite Indexes** | B-Tree index across multiple columns | Accelerates 30-day historical price lookup queries | `price_history` table | *Q: Why ordering matters in composite indexes?* A: Leftmost column rule dictates query filtering matching index structure. |
+| **`@DataJpaTest`** | Spring Boot test slice for JPA repositories | Configures in-memory database & Hibernate for isolated DB testing | `ProductRepositoryTest.java` | *Q: How does `@DataJpaTest` isolate tests?* A: Rolls back transactions automatically after each test method. |
 
 ---
 

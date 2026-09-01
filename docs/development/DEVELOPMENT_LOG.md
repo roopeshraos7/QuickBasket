@@ -115,6 +115,48 @@ To establish the core REST framework, strategy-based provider abstraction, and i
 - `@WebMvcTest` controller testing and RFC 7807 assertions.
 
 ### Next Step
-Wait for explicit instruction to proceed to Week 2 / Phase 2 (PostgreSQL Database Design & JPA Persistence).
+Commence Phase 2 implementation on phase/week-2-database branch.
+
+---
+
+## 2026-09-01 — Phase 2 (Weeks 3–4): PostgreSQL Database Design & JPA Persistence
+
+### Phase
+Phase 2 — Database Persistence & Price History
+
+### Branch
+`phase/week-2-database`
+
+### What Changed
+- Added `spring-boot-starter-data-jpa`, `postgresql` driver, and `h2` test database dependencies to `pom.xml`.
+- Configured PostgreSQL datasource & Hibernate dialect in `application.yml` and in-memory H2 profile in `test/application.yml`.
+- Added SQL schema/data scripts (`schema.sql`, `data.sql`) auto-seeding master platform records (`BLINKIT`, `ZEPTO`, `INSTAMART`, `BIGBASKET`).
+- Created JPA Entities (`PlatformEntity`, `ProductEntity`, `PlatformOfferEntity`, `PriceHistoryEntity`) with relationship mappings, composite indexes, and unique constraints.
+- Created Spring Data JPA Repositories (`PlatformRepository`, `ProductRepository`, `PlatformOfferRepository`, `PriceHistoryRepository`).
+- Created `ProductCatalogService` implementing deterministic SKU matching, live offer snapshot upserts, and timeseries price history recording.
+- Integrated `ProductCatalogService` transparently into `ProductComparisonService` upon search execution.
+- Added repository unit tests (`@DataJpaTest`) and service integration tests (`ProductCatalogServiceTest`).
+
+### Why
+To transition QuickBasket from in-memory transient REST search to a persistent product catalog with timeseries price history logging.
+
+### Technologies
+- PostgreSQL 16 & Hibernate 6.4 ORM
+- Spring Data JPA (`JpaRepository`)
+- H2 In-Memory Database (Test profile)
+- Spring `@Transactional` Management
+
+### Important Decisions
+- **ADR-010**: External offer item identity defined as `(platform_id, external_item_id)`. Canonical product matching uses deterministic normalized attributes (`brand + normalized product name + quantity + unit`).
+
+### What I Learned
+- JPA entity lifecycle, `@ManyToOne` lazy loading, and constraint definition.
+- Spring Data JPA derived query methods.
+- Composite database indexing for timeseries queries (`product_id, platform_id, recorded_at DESC`).
+- `@DataJpaTest` slice testing and H2 test isolation.
+
+### Next Step
+Wait for explicit instruction to proceed to Phase 3 (Redis Caching & Search Optimization).
+
 
 
