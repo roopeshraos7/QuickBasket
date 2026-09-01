@@ -107,4 +107,20 @@
 * **Rationale**: Maintains 100% deterministic correctness and isolation of database entity records while leaving a clean path for architectural evolution.
 * **Trade-Off**: Basic rule-based matching may create separate `ProductEntity` entries for slight spelling variations until enhanced rule matching is added.
 
+---
+
+## ADR-011: Unified Provider Strategy for Quick-Commerce and E-Commerce (Amazon & Flipkart)
+
+* **Status**: **PROPOSED / APPROVED IN DESIGN**
+* **Context**: QuickBasket is expanding from quick-commerce (Blinkit, Zepto, Instamart, BigBasket) to traditional e-commerce (Amazon, Flipkart). We need a clean provider architecture that handles different delivery semantics (minutes vs. days) and seller dynamics without breaking the existing core domain.
+* **Decision**:
+  1. **Retain `ProductProvider` as Core Strategy**: Keep `ProductProvider` as the unified Strategy interface. Avoid creating separate top-level `CommerceProvider` interfaces.
+  2. **Classify Platform Types**: Add `platform_type` (`QUICK_COMMERCE` vs `ECOMMERCE`) to `PlatformEntity` and `platforms` DB table.
+  3. **Domain Offer Extension**: Extend `NormalizedProductOffer` DTO with optional `sellerName`, `deliveryEtaText` (e.g. "Tomorrow by 10 PM", "2-3 Days"), and `shippingFee`.
+  4. **Parallel Provider Execution & Fault Tolerance**: Refactor `ProductComparisonService` to execute active providers concurrently using `CompletableFuture` with individual exception handling so single-provider outages or API rate limit failures do not block the search response.
+  5. **API Credential Resilience**: Amazon PA-API 5.0 requires 3 qualifying sales within 30 days. Configure `AmazonProvider` and `FlipkartProvider` with feature flags (`quickbasket.providers.amazon.enabled: false`) and mock fallbacks (`MockECommerceProvider`) for local dev when official API eligibility is absent.
+* **Rationale**: Preserves existing clean API contracts while supporting multi-seller e-commerce marketplaces and fast quick-commerce platforms in a single unified architecture.
+* **Trade-Off**: E-commerce titles are significantly longer and require title normalization heuristics during SKU matching.
+
+
 
