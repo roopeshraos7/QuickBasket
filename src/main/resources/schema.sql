@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS platforms (
+    id SERIAL PRIMARY KEY,
+    code VARCHAR(50) UNIQUE NOT NULL,
+    display_name VARCHAR(100) NOT NULL,
+    logo_url TEXT,
+    is_active BOOLEAN DEFAULT TRUE NOT NULL
+);
