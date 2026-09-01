@@ -8,6 +8,7 @@ import com.quickbasket.service.provider.ProductProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,12 +40,14 @@ public class ProductComparisonService {
     /**
      * Search products across platforms using the configured active provider,
      * persist/update offers and price history, and compute best options.
+     * Caches search result in Redis under 'product_searches' for 5 minutes.
      *
      * @param query     Product search query
      * @param latitude  User location latitude
      * @param longitude User location longitude
      * @return ProductSearchResponse containing offers and best option analysis
      */
+    @Cacheable(value = "product_searches", key = "'qb:search:' + #query.toLowerCase().trim() + '_' + #latitude + '_' + #longitude")
     public ProductSearchResponse searchProducts(String query, String latitude, String longitude) {
         ProductProvider provider = resolveProvider(activeProviderCode);
         log.info("Executing product search using provider '{}' for query '{}'", activeProviderCode, query);
