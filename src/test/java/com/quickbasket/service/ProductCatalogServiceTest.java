@@ -1,6 +1,8 @@
 package com.quickbasket.service;
 
+import com.quickbasket.dto.DeliveryEstimate;
 import com.quickbasket.dto.NormalizedProductOffer;
+import com.quickbasket.dto.PlatformType;
 import com.quickbasket.entity.PlatformOfferEntity;
 import com.quickbasket.entity.PriceHistoryEntity;
 import com.quickbasket.repository.PlatformOfferRepository;
@@ -43,11 +45,13 @@ class ProductCatalogServiceTest {
         NormalizedProductOffer offer = new NormalizedProductOffer(
                 "BLINKIT",
                 "Blinkit",
+                PlatformType.QUICK_COMMERCE,
                 new BigDecimal("54.00"),
                 new BigDecimal("56.00"),
                 new BigDecimal("3.57"),
                 true,
-                14,
+                DeliveryEstimate.instant(14),
+                null,
                 "https://blinkit.com/item/123",
                 "https://cdn.blinkit.com/img.jpg"
         );

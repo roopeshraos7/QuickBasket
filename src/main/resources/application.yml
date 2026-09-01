@@ -1,49 +1,50 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: quickbasket
-
+  threads:
+    virtual:
+      enabled: true
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:quickbasket}}
-    username: ${SPRING_DATASOURCE_USERNAME:${DB_USER:postgres}}
-    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:postgres}}
+    url: jdbc:postgresql://localhost:5432/quickbasket
+    username: postgres
+    password: postgrespassword
     driver-class-name: org.postgresql.Driver
-
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
     show-sql: false
-
   sql:
     init:
       mode: always
-      defer-datasource-initialization: true
-
   data:
     redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
+      host: localhost
+      port: 6379
       timeout: 2000ms
+
+quickcommerce:
+  api:
+    base-url: https://api.quickcommerceapi.com
+    token: mock-bearer-token-12345
+    active-provider: all
 
 quickbasket:
   cache:
     ttl-seconds: 300
-
-quickcommerce:
-  api:
-    base-url: ${QUICKCOMMERCE_API_BASE_URL:https://quickcommerceapi.com}
-    key: ${QUICKCOMMERCE_API_KEY:mock-local-key}
-    active-provider: ${ACTIVE_PROVIDER:mock}
+  providers:
+    mock:
+      enabled: true
+      timeout-ms: 1500
+    quickcommerce:
+      enabled: false
+      timeout-ms: 1500
 
 springdoc:
   api-docs:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-    operations-sorter: method

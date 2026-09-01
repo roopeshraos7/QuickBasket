@@ -3,16 +3,30 @@ package com.quickbasket.dto;
 import java.util.List;
 
 /**
- * REST API response record for product comparison searches (GET /api/v1/products/search).
+ * Top-level response structure for product search operations.
  *
- * @param query        The original search query term
- * @param totalResults Total number of product offers returned
- * @param bestOption   Calculated summary of cheapest and fastest options
- * @param offers       List of normalized product offers across platforms
+ * @param query           Search query text
+ * @param totalResults    Total number of offers aggregated across active providers
+ * @param bestOption      Cheapest and fastest offer recommendations
+ * @param offers          Aggregated list of normalized product offers
+ * @param failedProviders List of provider codes that timed out or failed during execution (empty if all succeeded)
  */
 public record ProductSearchResponse(
         String query,
-        Integer totalResults,
+        int totalResults,
         BestOption bestOption,
-        List<NormalizedProductOffer> offers
-) {}
+        List<NormalizedProductOffer> offers,
+        List<String> failedProviders
+) {
+    /**
+     * Backward-compatible constructor for calls omitting failedProviders.
+     */
+    public ProductSearchResponse(
+            String query,
+            int totalResults,
+            BestOption bestOption,
+            List<NormalizedProductOffer> offers
+    ) {
+        this(query, totalResults, bestOption, offers, List.of());
+    }
+}
