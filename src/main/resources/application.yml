@@ -25,6 +25,16 @@ spring:
       mode: always
       defer-datasource-initialization: true
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 2000ms
+
+quickbasket:
+  cache:
+    ttl-seconds: 300
+
 quickcommerce:
   api:
     base-url: ${QUICKCOMMERCE_API_BASE_URL:https://quickcommerceapi.com}

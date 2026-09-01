@@ -24,6 +24,13 @@ spring:
       mode: always
       defer-datasource-initialization: true
 
+  cache:
+    type: none
+
+quickbasket:
+  cache:
+    ttl-seconds: 60
+
 quickcommerce:
   api:
     base-url: https://quickcommerceapi.com
