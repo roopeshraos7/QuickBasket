@@ -25,7 +25,7 @@ spring:
       defer-datasource-initialization: true
 
   cache:
-    type: none
+    type: simple
 
 quickbasket:
   cache:

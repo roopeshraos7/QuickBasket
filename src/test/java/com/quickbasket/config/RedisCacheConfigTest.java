@@ -4,11 +4,25 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.Cache;
 import org.springframework.cache.interceptor.CacheErrorHandler;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.mockito.Mockito.mock;
 
 class RedisCacheConfigTest {
+
+    @Test
+    @DisplayName("cacheManager should initialize RedisCacheManager bean correctly")
+    void cacheManager_ShouldInitializeRedisCacheManager() {
+        RedisCacheConfig redisCacheConfig = new RedisCacheConfig(300);
+        RedisConnectionFactory mockFactory = mock(RedisConnectionFactory.class);
+
+        RedisCacheManager cacheManager = redisCacheConfig.cacheManager(mockFactory);
+
+        assertThat(cacheManager).isNotNull();
+    }
 
     @Test
     @DisplayName("CacheErrorHandler should gracefully swallow Redis connection exceptions without throwing")

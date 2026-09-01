@@ -47,7 +47,7 @@ public class ProductComparisonService {
      * @param longitude User location longitude
      * @return ProductSearchResponse containing offers and best option analysis
      */
-    @Cacheable(value = "product_searches", key = "'qb:search:' + #query.toLowerCase().trim() + '_' + #latitude + '_' + #longitude")
+    @Cacheable(value = "product_searches", key = "'qb:search:' + (#query != null ? #query.toLowerCase().trim() : '') + '_' + (#latitude != null ? #latitude : 'default') + '_' + (#longitude != null ? #longitude : 'default')")
     public ProductSearchResponse searchProducts(String query, String latitude, String longitude) {
         ProductProvider provider = resolveProvider(activeProviderCode);
         log.info("Executing product search using provider '{}' for query '{}'", activeProviderCode, query);
