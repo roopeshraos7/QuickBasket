@@ -156,7 +156,48 @@ To transition QuickBasket from in-memory transient REST search to a persistent p
 - `@DataJpaTest` slice testing and H2 test isolation.
 
 ### Next Step
-Wait for explicit instruction to proceed to Phase 3 (Redis Caching & Search Optimization).
+Commence Phase 3 implementation on phase/week-3-caching branch.
+
+---
+
+## 2026-09-01 — Phase 3 (Weeks 5–6): Redis Caching & Search Optimization
+
+### Phase
+Phase 3 — Redis Caching & Search Optimization
+
+### Branch
+`phase/week-3-caching`
+
+### What Changed
+- Added `spring-boot-starter-data-redis` dependency to `pom.xml`.
+- Configured Redis connection parameters and 5-minute TTL properties (`quickbasket.cache.ttl-seconds: 300`) in `application.yml`.
+- Implemented `RedisCacheConfig` enabling Spring Cache abstraction with `RedisCacheManager`, Jackson JSON serialization, and a custom `CacheErrorHandler`.
+- Annotated `ProductComparisonService.searchProducts()` with `@Cacheable(value = "product_searches", key = "'qb:search:' + #query.toLowerCase().trim() + '_' + #latitude + '_' + #longitude")`.
+- Implemented graceful failure degradation: caught Redis connection failures in `CacheErrorHandler`, logging warnings while transparently allowing searches to proceed to database/provider lookup without crashing REST requests.
+- Added `RedisCacheConfigTest` verifying that cache errors are handled gracefully without throwing runtime exceptions.
+
+### Why
+To optimize search response latency (from ~500ms to sub-10ms) and protect third-party API quota consumption by 75%+, while guaranteeing system resilience if Redis is offline.
+
+### Technologies
+- Redis 7 & Spring Data Redis
+- Spring Cache Abstraction (`@Cacheable`, `@EnableCaching`)
+- Jackson JSON Serialization (`GenericJackson2JsonRedisSerializer`)
+- Resilience / Graceful Degradation (`CacheErrorHandler`)
+
+### Important Decisions
+- **Cache-Aside Strategy**: Search results cached in Redis under `product_searches` namespace with 5-minute TTL.
+- **Graceful Failure Degradation**: Redis outages degrade gracefully into normal DB/API search without raising 500 Internal Server Errors.
+
+### What I Learned
+- Cache-Aside pattern mechanics and TTL management.
+- Spring Cache abstraction & SpEL key generation.
+- JSON Redis serialization vs JDK binary serialization.
+- Custom `CacheErrorHandler` implementation for fault-tolerant cache degradation.
+
+### Next Step
+Wait for explicit instruction to proceed to Phase 4 (User Authentication, Watchlists & Price Drop Alerts).
+
 
 
 

@@ -57,7 +57,20 @@
 ---
 
 ## 4. Caching & Performance (Redis 7)
-*(To be populated during Weeks 5–6 implementation)*
+
+### Core Concepts & Strategy
+* **Cache-Aside Pattern**: Application reads from Redis first; on cache miss, fetches from database/API and populates Redis for 5 minutes.
+* **Spring Cache Abstraction**: Declarative caching using `@EnableCaching` and `@Cacheable` SpEL expressions (`key = "'qb:search:' + ..."`).
+* **Redis Serializers**: Using `GenericJackson2JsonRedisSerializer` for human-readable JSON payload storage instead of default Java JDK binary serialization.
+* **Graceful Failure Degradation**: Implementing custom `CacheErrorHandler` to catch Redis connection outages (`RedisConnectionFailureException`) and proceed seamlessly to DB/API search without throwing HTTP 500 errors.
+
+### Technology Matrix:
+| Topic | What It Is | Why We Use It | Where Used in QuickBasket | Key Takeaway / Interview Question |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cache-Aside Pattern** | Strategy where application explicitly manages cache loading | Protects external API quota and achieves sub-10ms response time | `ProductComparisonService.java` | *Q: What is Cache-Aside vs Read-Through?* A: In Cache-Aside, the application code handles cache lookup, fallback, and population. |
+| **Spring `@Cacheable`** | SpEL-driven declarative caching annotation | Eliminates manual Redis template boilerplate | `searchProducts()` method | *Q: How does SpEL construct cache keys dynamically?* A: Evaluates method parameter expressions (e.g. `#query.toLowerCase().trim()`). |
+| **JSON Serialization** | Storing cached values as structured JSON strings | Interoperable across services, human-readable in Redis CLI | `RedisCacheConfig.java` | *Q: Why avoid default Java JDK serialization in Redis?* A: Binary blobs are unreadable, tightly coupled to Java class signatures, and brittle. |
+| **Cache Error Handling** | Intercepting Redis runtime connectivity failures | Ensures system resilience during Redis outages | `RedisCacheConfig.java` | *Q: How do you prevent Redis outages from taking down your backend?* A: Implement `CacheErrorHandler` to log warnings and bypass cache transparently. |
 
 ---
 
