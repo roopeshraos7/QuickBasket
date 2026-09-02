@@ -3,20 +3,20 @@ package com.quickbasket.service;
 import com.quickbasket.dto.BestOption;
 import com.quickbasket.dto.NormalizedProductOffer;
 import com.quickbasket.dto.ProductSearchResponse;
+import com.quickbasket.service.cache.ProviderSliceCacheService;
 import com.quickbasket.service.provider.ProductProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -24,7 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Service encapsulating multi-provider product search, concurrent execution via Java 21 Virtual Threads,
- * provider timeout and failure isolation, catalog persistence, and price/ETA comparison logic.
+ * per-provider Redis slice caching, provider timeout and failure isolation, catalog persistence, and
+ * dynamic price/ETA comparison logic.
  */
 @Service
 public class ProductComparisonService {
@@ -33,43 +34,57 @@ public class ProductComparisonService {
 
     private final List<ProductProvider> providers;
     private final ProductCatalogService catalogService;
+    private final ProviderSliceCacheService sliceCacheService;
     private final Executor executor;
     private final String activeProviderCode;
+
+    // Helper record tracking slice offers and cache hit status
+    private record ProviderSliceResult(List<NormalizedProductOffer> offers, boolean isCacheHit) {}
 
     @Autowired
     public ProductComparisonService(
             List<ProductProvider> providers,
             ProductCatalogService catalogService,
+            ProviderSliceCacheService sliceCacheService,
             @Autowired(required = false) Executor executor,
             @Value("${quickcommerce.api.active-provider:all}") String activeProviderCode
     ) {
         this.providers = providers;
         this.catalogService = catalogService;
+        this.sliceCacheService = sliceCacheService;
         this.executor = executor != null ? executor : Executors.newVirtualThreadPerTaskExecutor();
         this.activeProviderCode = activeProviderCode;
     }
 
-    // Constructor for testing without task executor bean
+    // Simplified constructor for test contexts without Spring DI
+    public ProductComparisonService(
+            List<ProductProvider> providers,
+            ProductCatalogService catalogService,
+            ProviderSliceCacheService sliceCacheService,
+            String activeProviderCode
+    ) {
+        this(providers, catalogService, sliceCacheService, null, activeProviderCode);
+    }
+
+    // Legacy test constructor compatibility
     public ProductComparisonService(
             List<ProductProvider> providers,
             ProductCatalogService catalogService,
             String activeProviderCode
     ) {
-        this(providers, catalogService, null, activeProviderCode);
+        this(providers, catalogService, null, null, activeProviderCode);
     }
 
     /**
-     * Search products concurrently across active providers using Java 21 Virtual Threads,
-     * aggregate results, handle timeouts and isolated failures, persist offer snapshots,
-     * and compute best price/ETA options.
-     * Caches overall search result in Redis under 'product_searches' for 5 minutes.
+     * Search products concurrently across active providers using Java 21 Virtual Threads and per-provider
+     * Redis slice caching. Aggregate results, handle isolated timeouts and failures, persist fresh offer
+     * snapshots to PostgreSQL, and compute dynamic best price/ETA options.
      *
      * @param query     Product search query
      * @param latitude  User location latitude
      * @param longitude User location longitude
      * @return ProductSearchResponse containing aggregated offers and best option analysis
      */
-    @Cacheable(value = "product_searches", key = "'qb:search:' + (#query != null ? #query.toLowerCase().trim() : '') + '_' + (#latitude != null ? #latitude : 'default') + '_' + (#longitude != null ? #longitude : 'default')")
     public ProductSearchResponse searchProducts(String query, String latitude, String longitude) {
         List<ProductProvider> targetProviders = resolveTargetProviders(activeProviderCode);
         log.info("Executing concurrent product search across {} active providers for query '{}'", targetProviders.size(), query);
@@ -81,30 +96,43 @@ public class ProductComparisonService {
 
         List<String> failedProviders = Collections.synchronizedList(new ArrayList<>());
 
-        List<CompletableFuture<List<NormalizedProductOffer>>> futures = targetProviders.stream()
-                .map(provider -> CompletableFuture.supplyAsync(() -> provider.searchProducts(query, latitude, longitude), executor)
+        List<CompletableFuture<ProviderSliceResult>> futures = targetProviders.stream()
+                .map(provider -> CompletableFuture.supplyAsync(() -> fetchProviderSlice(provider, query, latitude, longitude), executor)
                         .orTimeout(provider.getTimeoutMs(), TimeUnit.MILLISECONDS)
                         .exceptionally(throwable -> {
                             String code = getProviderCodeSafe(provider);
                             log.warn("Provider '{}' failed or timed out during search: {}", code, throwable.getMessage());
                             failedProviders.add(code);
-                            return List.of();
+                            return new ProviderSliceResult(List.of(), false);
                         }))
                 .toList();
 
         // Wait for all provider executions to settle
         CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
 
-        List<NormalizedProductOffer> aggregatedOffers = futures.stream()
+        List<ProviderSliceResult> sliceResults = futures.stream()
                 .map(CompletableFuture::join)
+                .filter(Objects::nonNull)
+                .toList();
+
+        // Separate fresh offers from cache misses for database persistence
+        List<NormalizedProductOffer> freshOffersToPersist = sliceResults.stream()
+                .filter(result -> !result.isCacheHit())
+                .map(ProviderSliceResult::offers)
                 .filter(Objects::nonNull)
                 .flatMap(List::stream)
                 .toList();
 
-        // Transparently persist offers and price history snapshot
-        if (!aggregatedOffers.isEmpty()) {
-            catalogService.saveOffers(query, aggregatedOffers);
+        if (!freshOffersToPersist.isEmpty()) {
+            catalogService.saveOffers(query, freshOffersToPersist);
         }
+
+        // Aggregate all offers (hits + fresh misses)
+        List<NormalizedProductOffer> aggregatedOffers = sliceResults.stream()
+                .map(ProviderSliceResult::offers)
+                .filter(Objects::nonNull)
+                .flatMap(List::stream)
+                .toList();
 
         BestOption bestOption = calculateBestOption(aggregatedOffers);
 
@@ -115,6 +143,30 @@ public class ProductComparisonService {
                 aggregatedOffers,
                 List.copyOf(failedProviders)
         );
+    }
+
+    private ProviderSliceResult fetchProviderSlice(ProductProvider provider, String query, String latitude, String longitude) {
+        String providerCode = getProviderCodeSafe(provider);
+
+        if (sliceCacheService != null) {
+            Optional<List<NormalizedProductOffer>> cachedSlice = sliceCacheService.getSlice(providerCode, query, latitude, longitude);
+            if (cachedSlice.isPresent()) {
+                return new ProviderSliceResult(cachedSlice.get(), true);
+            }
+        }
+
+        // Cache MISS - Invoke provider API
+        List<NormalizedProductOffer> freshOffers = provider.searchProducts(query, latitude, longitude);
+        if (freshOffers == null) {
+            freshOffers = List.of();
+        }
+
+        // Put fresh slice into Redis cache if cache service is available
+        if (sliceCacheService != null) {
+            sliceCacheService.putSlice(providerCode, query, latitude, longitude, freshOffers);
+        }
+
+        return new ProviderSliceResult(freshOffers, false);
     }
 
     private List<ProductProvider> resolveTargetProviders(String selectionCode) {

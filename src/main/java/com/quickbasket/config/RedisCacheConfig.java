@@ -1,5 +1,6 @@
 package com.quickbasket.config;
 
+import com.quickbasket.service.cache.ProviderSliceCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,7 +24,7 @@ import java.time.Duration;
 
 /**
  * Configuration class enabling Spring Cache abstraction with Redis CacheManager
- * and graceful degradation error handling when Redis is offline.
+ * for per-provider slice caching and graceful degradation error handling when Redis is offline.
  */
 @Configuration
 @EnableCaching
@@ -48,13 +49,14 @@ public class RedisCacheConfig implements CachingConfigurer {
 
         return RedisCacheManager.builder(connectionFactory)
                 .cacheDefaults(config)
+                .withCacheConfiguration(ProviderSliceCacheService.CACHE_NAME, config)
                 .build();
     }
 
     @Bean
     @ConditionalOnProperty(name = "spring.cache.type", havingValue = "simple")
     public CacheManager testCacheManager() {
-        return new ConcurrentMapCacheManager("product_searches");
+        return new ConcurrentMapCacheManager(ProviderSliceCacheService.CACHE_NAME);
     }
 
     /**

@@ -5,6 +5,7 @@ import com.quickbasket.dto.NormalizedProductOffer;
 import com.quickbasket.dto.PlatformType;
 import com.quickbasket.dto.ProductSearchResponse;
 import com.quickbasket.service.ProductComparisonService;
+import com.quickbasket.service.cache.ProviderSliceCacheService;
 import com.quickbasket.service.provider.MockProductProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,7 +44,7 @@ class ProductSearchCacheIntegrationTest {
     @BeforeEach
     void setUp() {
         try {
-            Cache cache = cacheManager.getCache("product_searches");
+            Cache cache = cacheManager.getCache(ProviderSliceCacheService.CACHE_NAME);
             if (cache != null) {
                 cache.clear();
             }
@@ -58,7 +59,7 @@ class ProductSearchCacheIntegrationTest {
     }
 
     @Test
-    @DisplayName("searchProducts should execute provider on Cache MISS and return cached result on Cache HIT")
+    @DisplayName("searchProducts should execute provider on Cache MISS and return cached slice on Cache HIT")
     void searchProducts_CacheMissExecutesProvider_CacheHitSkipsProvider() {
         NormalizedProductOffer offer = new NormalizedProductOffer(
                 "BLINKIT",
@@ -76,13 +77,13 @@ class ProductSearchCacheIntegrationTest {
 
         when(mockProvider.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of(offer));
 
-        // First call - Cache MISS
+        // First call - Cache MISS (executes provider searchProducts once)
         ProductSearchResponse response1 = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
         assertThat(response1).isNotNull();
         assertThat(response1.totalResults()).isEqualTo(1);
         verify(mockProvider, times(1)).searchProducts("Milk", "12.9716", "77.5946");
 
-        // Second call - Cache HIT (or graceful fallback on cache failure)
+        // Second call - Cache HIT (or graceful fallback on cache failure, provider call count remains <= 2)
         ProductSearchResponse response2 = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
         assertThat(response2).isNotNull();
         assertThat(response2.totalResults()).isEqualTo(1);

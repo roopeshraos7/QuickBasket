@@ -1,5 +1,6 @@
 package com.quickbasket.cache;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.quickbasket.dto.BestOption;
 import com.quickbasket.dto.DeliveryEstimate;
@@ -45,5 +46,49 @@ class RedisSerializationTest {
         ProductSearchResponse deserialized = objectMapper.readValue(json, ProductSearchResponse.class);
         assertThat(deserialized).isEqualTo(original);
         assertThat(deserialized.offers().get(0).platformType()).isEqualTo(PlatformType.QUICK_COMMERCE);
+    }
+
+    @Test
+    @DisplayName("List<NormalizedProductOffer> provider slice payload should serialize and deserialize correctly")
+    void offerListSlice_ShouldSerializeAndDeserializeCorrectly() throws Exception {
+        NormalizedProductOffer offer1 = new NormalizedProductOffer(
+                "BLINKIT",
+                "Blinkit",
+                PlatformType.QUICK_COMMERCE,
+                new BigDecimal("54.00"),
+                new BigDecimal("56.00"),
+                new BigDecimal("3.57"),
+                true,
+                DeliveryEstimate.instant(14),
+                "Blinkit Hub",
+                "https://blinkit.com/item/123",
+                "https://cdn.blinkit.com/img.jpg"
+        );
+
+        NormalizedProductOffer offer2 = new NormalizedProductOffer(
+                "ZEPTO",
+                "Zepto",
+                PlatformType.QUICK_COMMERCE,
+                new BigDecimal("52.00"),
+                new BigDecimal("56.00"),
+                new BigDecimal("7.14"),
+                true,
+                DeliveryEstimate.instant(10),
+                "Zepto Hub",
+                "https://zepto.com/item/456",
+                "https://cdn.zepto.com/img.jpg"
+        );
+
+        List<NormalizedProductOffer> originalSlice = List.of(offer1, offer2);
+
+        String json = objectMapper.writeValueAsString(originalSlice);
+        assertThat(json).contains("\"platformCode\":\"BLINKIT\"");
+        assertThat(json).contains("\"platformCode\":\"ZEPTO\"");
+
+        List<NormalizedProductOffer> deserializedSlice = objectMapper.readValue(json, new TypeReference<List<NormalizedProductOffer>>() {});
+        assertThat(deserializedSlice).hasSize(2);
+        assertThat(deserializedSlice.get(0).platformCode()).isEqualTo("BLINKIT");
+        assertThat(deserializedSlice.get(1).platformCode()).isEqualTo("ZEPTO");
+        assertThat(deserializedSlice.get(0).delivery().etaMinutes()).isEqualTo(14);
     }
 }

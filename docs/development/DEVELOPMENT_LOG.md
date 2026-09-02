@@ -234,7 +234,53 @@ To prepare QuickBasket for Phase 4B per-provider Redis slice caching (`qb:provid
 - Clean Spring configuration property naming conventions for provider beans.
 
 ### Next Step
-Wait for explicit instruction to proceed to Phase 4B (Per-Provider Redis Slice Caching).
+Commence Phase 4B per-provider Redis slice caching implementation.
+
+---
+
+## 2026-09-02 — Phase 4B: Per-Provider Redis Slice Caching Implementation
+
+### Phase
+Phase 4B — Per-Provider Redis Slice Caching
+
+### Branch
+`phase/week-4a-provider-architecture`
+
+### What Changed
+- **Removed Whole-Search Caching**: Removed `@Cacheable` from `ProductComparisonService.searchProducts(...)`.
+- **Created `ProviderSliceCacheService.java`**: Implemented service-layer slice caching using Redis namespace `provider_slices` and key format `qb:provider:<PROVIDER_CODE>:<NORMALIZED_QUERY>:<LATITUDE>:<LONGITUDE>`.
+- **Updated `RedisCacheConfig.java`**: Configured `provider_slices` cache configuration with 5-minute TTL (`300s`), `StringRedisSerializer` for keys, `GenericJackson2JsonRedisSerializer` for `List<NormalizedProductOffer>` values, and custom `CacheErrorHandler` for graceful degradation.
+- **Updated `ProductComparisonService.java`**:
+  - Executes per-provider slice lookups asynchronously via Virtual Threads.
+  - On Cache MISS: fetches fresh offers from `provider.searchProducts()`, caches slice in Redis, and persists offers to PostgreSQL via `catalogService.saveOffers()`.
+  - On Cache HIT: returns cached slice and skips PostgreSQL DB writes.
+  - Dynamically recalculates `BestOption` across aggregated slices.
+- **Added Comprehensive Unit & Integration Tests**:
+  - `ProviderSliceCacheServiceTest`: Key normalization and slice get/put tests.
+  - `ProductComparisonServiceTest`: Cache HIT, Cache MISS, mixed HIT/MISS, DB bypass on HIT, provider timeout/exception isolation.
+  - `ProductSearchCacheIntegrationTest`: `provider_slices` cache integration.
+  - `RedisSerializationTest`: `List<NormalizedProductOffer>` JSON slice serialization/deserialization.
+- **Updated Living Documentation**: Added ADR-013 in `DECISIONS.md`, updated `ROADMAP.md` and `LEARNING.md`.
+
+### Why
+To replace rigid whole-search caching with granular per-provider slice caching, maximizing partial cache reuse across providers, eliminating cache stampedes, and avoiding duplicate DB writes.
+
+### Technologies
+- Redis 7 & Spring Data Redis
+- Spring Cache Abstraction & Custom CacheManager
+- Java 21 Record DTO Serialization & Virtual Thread Concurrency
+
+### Important Decisions
+- **ADR-013**: Per-provider slice caching using `provider.getProviderCode()`. `BestOption` is computed dynamically in memory. DB persistence occurs strictly on Cache MISS.
+
+### What I Learned
+- Per-provider slice cache architecture and key normalization mechanics.
+- Bypassing redundant DB writes on Cache HIT while maintaining audit snapshots on Cache MISS.
+- Graceful error handling and non-cached failure isolation in concurrent Virtual Thread orchestrations.
+
+### Next Step
+Wait for explicit instruction to proceed to Phase 4C (Flipkart API Provider Integration).
+
 
 
 
