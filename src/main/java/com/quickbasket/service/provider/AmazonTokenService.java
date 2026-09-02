@@ -23,6 +23,8 @@ public class AmazonTokenService {
 
     private static final Logger log = LoggerFactory.getLogger(AmazonTokenService.class);
     private static final long EXPIRY_SAFETY_MARGIN_SECONDS = 300L;
+    private static final String DEFAULT_TOKEN_URL = "https://api.amazon.co.uk/auth/o2/token";
+    private static final String CREATORS_API_SCOPE = "creatorsapi::default";
 
     private final RestClient restClient;
     private final String clientId;
@@ -36,12 +38,12 @@ public class AmazonTokenService {
             RestClient.Builder restClientBuilder,
             @Value("${quickbasket.providers.amazon.client-id:}") String clientId,
             @Value("${quickbasket.providers.amazon.client-secret:}") String clientSecret,
-            @Value("${quickbasket.providers.amazon.token-url:https://api.amazon.co.in/auth/o2/token}") String tokenUrl
+            @Value("${quickbasket.providers.amazon.token-url:https://api.amazon.co.uk/auth/o2/token}") String tokenUrl
     ) {
         this.restClient = restClientBuilder.build();
         this.clientId = clientId != null ? clientId.trim() : "";
         this.clientSecret = clientSecret != null ? clientSecret.trim() : "";
-        this.tokenUrl = tokenUrl != null ? tokenUrl.trim() : "https://api.amazon.co.in/auth/o2/token";
+        this.tokenUrl = (tokenUrl != null && !tokenUrl.isBlank()) ? tokenUrl.trim() : DEFAULT_TOKEN_URL;
     }
 
     /**
@@ -63,7 +65,7 @@ public class AmazonTokenService {
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
         formData.add("client_secret", clientSecret);
-        formData.add("scope", "amazon_creators_api");
+        formData.add("scope", CREATORS_API_SCOPE);
 
         try {
             AmazonTokenResponse response = restClient.post()

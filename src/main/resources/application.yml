@@ -56,7 +56,7 @@ quickbasket:
       partner-tag: ${AMAZON_PARTNER_TAG:}
       marketplace: ${AMAZON_MARKETPLACE:www.amazon.in}
       base-url: https://creatorsapi.amazon
-      token-url: ${AMAZON_TOKEN_URL:https://api.amazon.co.in/auth/o2/token}
+      token-url: ${AMAZON_TOKEN_URL:https://api.amazon.co.uk/auth/o2/token}
       timeout-ms: 1500
       item-count: 10
 

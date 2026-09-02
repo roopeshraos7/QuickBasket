@@ -162,6 +162,45 @@ class AmazonCreatorsApiProviderTest {
     }
 
     @Test
+    @DisplayName("searchProducts should map null mrp when savingBasis is absent without fabricating mrp")
+    void searchProducts_AbsentSavingBasis_ShouldKeepMrpNull() {
+        when(tokenService.getAccessToken()).thenReturn("mock-bearer-token-999");
+
+        String jsonResponse = """
+                {
+                  "searchResult": {
+                    "totalResultCount": 1,
+                    "items": [
+                      {
+                        "asin": "B089XYZ",
+                        "detailPageURL": "https://www.amazon.in/dp/B089XYZ",
+                        "offersV2": {
+                          "listings": [
+                            {
+                              "price": { "price": { "amount": 500.00, "currency": "INR" } },
+                              "availability": { "type": "IN_STOCK" }
+                            }
+                          ]
+                        }
+                      }
+                    ]
+                  }
+                }
+                """;
+
+        mockServer.expect(requestTo("https://creatorsapi.amazon/catalog/v1/searchItems"))
+                .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+        List<NormalizedProductOffer> offers = provider.searchProducts("item", "12.9716", "77.5946");
+        assertThat(offers).hasSize(1);
+        NormalizedProductOffer offer = offers.get(0);
+
+        assertThat(offer.price()).isEqualByComparingTo(new BigDecimal("500.00"));
+        assertThat(offer.mrp()).isNull(); // MRP is NOT fabricated
+        assertThat(offer.discountPercentage()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
     @DisplayName("searchProducts should map out of stock when availability type is OUTOFSTOCK")
     void searchProducts_OutOfStock_ShouldMapInStockFalse() {
         when(tokenService.getAccessToken()).thenReturn("mock-bearer-token-999");

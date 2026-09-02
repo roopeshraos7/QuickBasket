@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Official Amazon Creators API provider integration (/catalog/v1/searchItems).
@@ -33,6 +34,10 @@ import java.util.Objects;
 public class AmazonCreatorsApiProvider implements ProductProvider {
 
     private static final Logger log = LoggerFactory.getLogger(AmazonCreatorsApiProvider.class);
+
+    private static final Set<String> IN_STOCK_AVAILABILITY_TYPES = Set.of(
+            "IN_STOCK", "INSTOCK", "INSTOCKSCARCE", "AVAILABLE", "AVAILABLEDATE", "LEADTIME", "PREORDER"
+    );
 
     private static final List<String> REQUESTED_RESOURCES = List.of(
             "itemInfo.title",
@@ -177,26 +182,23 @@ public class AmazonCreatorsApiProvider implements ProductProvider {
         }
 
         AmazonListing listing = selectListing(item);
-        if (listing == null || listing.price() == null) {
+        if (listing == null || listing.price() == null || listing.price().price() == null) {
             return null;
         }
 
-        BigDecimal price = (listing.price().price() != null && listing.price().price().amount() != null)
-                ? listing.price().price().amount()
-                : (listing.price().savingBasis() != null ? listing.price().savingBasis().amount() : BigDecimal.ZERO);
+        BigDecimal price = listing.price().price().amount();
+        if (price == null || price.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
 
         BigDecimal mrp = (listing.price().savingBasis() != null && listing.price().savingBasis().amount() != null)
                 ? listing.price().savingBasis().amount()
-                : price;
-
-        if (price.compareTo(BigDecimal.ZERO) <= 0 && mrp.compareTo(BigDecimal.ZERO) <= 0) {
-            return null;
-        }
+                : null;
 
         BigDecimal discountPercentage = BigDecimal.ZERO;
         if (listing.price().savingsPercentage() != null) {
             discountPercentage = BigDecimal.valueOf(listing.price().savingsPercentage()).setScale(2, RoundingMode.HALF_UP);
-        } else if (mrp.compareTo(BigDecimal.ZERO) > 0 && mrp.compareTo(price) > 0) {
+        } else if (mrp != null && mrp.compareTo(BigDecimal.ZERO) > 0 && mrp.compareTo(price) > 0) {
             discountPercentage = mrp.subtract(price)
                     .multiply(new BigDecimal("100"))
                     .divide(mrp, 2, RoundingMode.HALF_UP);
@@ -236,10 +238,22 @@ public class AmazonCreatorsApiProvider implements ProductProvider {
         if (item.offersV2() == null || item.offersV2().listings() == null || item.offersV2().listings().isEmpty()) {
             return null;
         }
-        return item.offersV2().listings().stream()
-                .filter(l -> Boolean.TRUE.equals(l.isBuyBoxWinner()))
+        List<AmazonListing> listings = item.offersV2().listings();
+
+        // 1. In-stock Buy Box Winner
+        return listings.stream()
+                .filter(l -> Boolean.TRUE.equals(l.isBuyBoxWinner()) && isAvailableInStock(l.availability()))
                 .findFirst()
-                .orElseGet(() -> item.offersV2().listings().get(0));
+                // 2. Any Buy Box Winner
+                .orElseGet(() -> listings.stream()
+                        .filter(l -> Boolean.TRUE.equals(l.isBuyBoxWinner()))
+                        .findFirst()
+                        // 3. First in-stock listing
+                        .orElseGet(() -> listings.stream()
+                                .filter(l -> isAvailableInStock(l.availability()))
+                                .findFirst()
+                                // 4. First listing
+                                .orElse(listings.get(0))));
     }
 
     private boolean isAvailableInStock(AmazonAvailability availability) {
@@ -247,7 +261,7 @@ public class AmazonCreatorsApiProvider implements ProductProvider {
             return false;
         }
         String type = availability.type().trim().toUpperCase();
-        return "IN_STOCK".equals(type) || "INSTOCK".equals(type) || "AVAILABLE".equals(type);
+        return IN_STOCK_AVAILABILITY_TYPES.contains(type);
     }
 
     private String resolveImageUrl(AmazonItem item) {

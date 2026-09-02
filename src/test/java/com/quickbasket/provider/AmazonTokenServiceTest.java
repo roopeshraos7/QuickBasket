@@ -33,12 +33,12 @@ class AmazonTokenServiceTest {
                 restClientBuilder,
                 "test-client-id",
                 "test-client-secret",
-                "https://api.amazon.co.in/auth/o2/token"
+                "https://api.amazon.co.uk/auth/o2/token"
         );
     }
 
     @Test
-    @DisplayName("getAccessToken should request token via form POST and cache valid access token")
+    @DisplayName("getAccessToken should request token via form POST with scope creatorsapi::default and cache valid access token")
     void getAccessToken_SuccessfulResponse_ShouldCacheAndReturnToken() {
         String tokenJsonResponse = """
                 {
@@ -48,9 +48,10 @@ class AmazonTokenServiceTest {
                 }
                 """;
 
-        mockServer.expect(requestTo("https://api.amazon.co.in/auth/o2/token"))
+        mockServer.expect(requestTo("https://api.amazon.co.uk/auth/o2/token"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_FORM_URLENCODED))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("scope=creatorsapi%3A%3Adefault")))
                 .andRespond(withSuccess(tokenJsonResponse, MediaType.APPLICATION_JSON));
 
         String token1 = tokenService.getAccessToken();
@@ -66,7 +67,7 @@ class AmazonTokenServiceTest {
     @Test
     @DisplayName("getAccessToken on HTTP 400/401 token endpoint failure should throw ProviderException")
     void getAccessToken_HttpError_ShouldThrowProviderException() {
-        mockServer.expect(requestTo("https://api.amazon.co.in/auth/o2/token"))
+        mockServer.expect(requestTo("https://api.amazon.co.uk/auth/o2/token"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThatThrownBy(() -> tokenService.getAccessToken())
@@ -78,7 +79,7 @@ class AmazonTokenServiceTest {
     @DisplayName("getAccessToken with missing credentials should throw ProviderException without HTTP call")
     void getAccessToken_MissingCredentials_ShouldThrowProviderException() {
         AmazonTokenService emptyCredsService = new AmazonTokenService(
-                restClientBuilder, "", "", "https://api.amazon.co.in/auth/o2/token"
+                restClientBuilder, "", "", "https://api.amazon.co.uk/auth/o2/token"
         );
 
         assertThatThrownBy(() -> emptyCredsService.getAccessToken())
