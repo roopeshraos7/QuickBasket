@@ -279,7 +279,49 @@ To replace rigid whole-search caching with granular per-provider slice caching, 
 - Graceful error handling and non-cached failure isolation in concurrent Virtual Thread orchestrations.
 
 ### Next Step
-Wait for explicit instruction to proceed to Phase 4C (Flipkart API Provider Integration).
+Commence Phase 4C Flipkart API provider integration.
+
+---
+
+## 2026-09-03 — Phase 4C: Official Flipkart Affiliate API Provider Integration
+
+### Phase
+Phase 4C — Flipkart API Provider Integration
+
+### Branch
+`phase/week-4c-flipkart`
+
+### What Changed
+- **Created Flipkart DTO Records (`com.quickbasket.dto.flipkart`)**: `FlipkartSearchResponse`, `FlipkartProductWrapper`, `FlipkartProductBaseInfo`, `FlipkartProductIdentifier`, `FlipkartProductAttributes`, `FlipkartPriceInfo`, `FlipkartShippingInfo`.
+- **Created `FlipkartProvider.java`**: Implemented `ProductProvider` strategy with `providerCode = "FLIPKART"` and `platformType = PlatformType.ECOMMERCE`.
+  - Configured via `quickbasket.providers.flipkart.*` properties (disabled when credentials empty).
+  - Executed blocking HTTP calls via Spring 6 `RestClient` on Virtual Threads.
+  - Implemented explicit HTTP status handling (`onStatus`) mapping 401/403, 429, 5xx, timeouts into `ProviderException`.
+  - Normalized responses into `NormalizedProductOffer` with `DeliveryType.STANDARD`, `etaMinutes = null`, and preserved direct API product URLs.
+- **Added Comprehensive Unit & Integration Tests**:
+  - `FlipkartProviderTest`: Tested provider metadata, header/param construction, price/mrp/discount mapping, out-of-stock mapping, 401/403 auth errors, 429 rate limits, 500 server errors, timeouts, and disabled provider state via `MockRestServiceServer`.
+  - `ProductComparisonServiceTest`: Tested multi-provider search aggregation across Mock, QuickCommerce, and Flipkart providers.
+- **Updated Living Documentation**: Added ADR-014 in `DECISIONS.md`, updated `ARCHITECTURE.md`, `LEARNING.md`, and `ROADMAP.md`.
+
+### Why
+To expand QuickBasket beyond hyper-local quick-commerce into traditional e-commerce marketplaces using official Flipkart Affiliate APIs without breaking core provider strategy or caching abstractions.
+
+### Technologies
+- Spring 6 `RestClient` + Java 21 Virtual Threads
+- Rest Header Authentication (`Fk-Affiliate-Id`, `Fk-Affiliate-Token`)
+- Java 21 DTO Record Mapping & Strategy Pattern
+
+### Important Decisions
+- **ADR-014**: Official Flipkart Affiliate API integration with `providerCode = "FLIPKART"`, `platformType = ECOMMERCE`, `DeliveryType.STANDARD`, and direct product URL preservation.
+
+### What I Learned
+- RestClient blocking I/O execution on Java 21 Virtual Threads.
+- External Affiliate API header authentication and rate limit handling.
+- Mapping e-commerce multi-day shipping timelines (`DeliveryEstimate`) alongside sub-hour quick-commerce ETAs.
+
+### Next Step
+Wait for explicit instruction to proceed to Phase 4D (Amazon Creators API Provider Integration).
+
 
 
 

@@ -42,6 +42,13 @@ quickbasket:
     quickcommerce-api:
       enabled: false
       timeout-ms: 1500
+    flipkart:
+      enabled: false
+      affiliate-id: ${FLIPKART_AFFILIATE_ID:}
+      affiliate-token: ${FLIPKART_AFFILIATE_TOKEN:}
+      base-url: https://affiliate-api.flipkart.net
+      timeout-ms: 2000
+      result-count: 10
 
 springdoc:
   api-docs:
