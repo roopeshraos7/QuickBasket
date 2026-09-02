@@ -5,7 +5,7 @@ import com.quickbasket.dto.DeliveryType;
 import com.quickbasket.dto.NormalizedProductOffer;
 import com.quickbasket.dto.PlatformType;
 import com.quickbasket.dto.flipkart.FlipkartProductAttributes;
-import com.quickbasket.dto.flipkart.FlipkartProductBaseInfo;
+import com.quickbasket.dto.flipkart.FlipkartProductBaseInfoV1;
 import com.quickbasket.dto.flipkart.FlipkartProductWrapper;
 import com.quickbasket.dto.flipkart.FlipkartSearchResponse;
 import com.quickbasket.dto.flipkart.FlipkartShippingInfo;
@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Official Flipkart Affiliate API provider integration.
+ * Official Flipkart Affiliate v1.0 API provider integration (/affiliate/1.0/search.json).
  * Represents an external e-commerce integration source (FLIPKART).
  */
 @Component
@@ -65,12 +65,12 @@ public class FlipkartProvider implements ProductProvider {
             return List.of();
         }
 
-        log.info("Fetching Flipkart offers for query '{}'", query);
+        log.info("Fetching Flipkart v1.0 offers for query '{}'", query);
 
         try {
             FlipkartSearchResponse response = restClient.get()
                     .uri(uriBuilder -> uriBuilder
-                            .path("/affiliate/1.0/search/json")
+                            .path("/affiliate/1.0/search.json")
                             .queryParam("query", query)
                             .queryParam("resultCount", resultCount)
                             .build())
@@ -89,12 +89,12 @@ public class FlipkartProvider implements ProductProvider {
                     })
                     .body(FlipkartSearchResponse.class);
 
-            if (response == null || response.products() == null) {
+            if (response == null || response.productInfoList() == null) {
                 log.warn("Flipkart API returned empty response payload for query '{}'", query);
                 return List.of();
             }
 
-            return response.products().stream()
+            return response.productInfoList().stream()
                     .map(this::normalizeProduct)
                     .filter(Objects::nonNull)
                     .toList();
@@ -144,11 +144,11 @@ public class FlipkartProvider implements ProductProvider {
     }
 
     private NormalizedProductOffer normalizeProduct(FlipkartProductWrapper wrapper) {
-        if (wrapper == null || wrapper.productBaseInfo() == null) {
+        if (wrapper == null || wrapper.productBaseInfoV1() == null) {
             return null;
         }
 
-        FlipkartProductBaseInfo baseInfo = wrapper.productBaseInfo();
+        FlipkartProductBaseInfoV1 baseInfo = wrapper.productBaseInfoV1();
         FlipkartProductAttributes attrs = baseInfo.productAttributes();
         if (attrs == null) {
             return null;
@@ -178,7 +178,7 @@ public class FlipkartProvider implements ProductProvider {
         boolean inStock = (attrs.inStock() == null || attrs.inStock())
                 && (attrs.isAvailable() == null || attrs.isAvailable());
 
-        FlipkartShippingInfo shipping = wrapper.shippingInfo();
+        FlipkartShippingInfo shipping = attrs.shippingInfo();
         BigDecimal shippingFee = (shipping != null && shipping.shippingFees() != null && shipping.shippingFees().amount() != null)
                 ? shipping.shippingFees().amount()
                 : BigDecimal.ZERO;

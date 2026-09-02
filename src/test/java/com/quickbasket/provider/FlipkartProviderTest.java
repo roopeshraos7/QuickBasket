@@ -77,13 +77,13 @@ class FlipkartProviderTest {
     }
 
     @Test
-    @DisplayName("searchProducts should construct valid headers, params, and map response to NormalizedProductOffer")
-    void searchProducts_SuccessfulResponse_ShouldMapNormalizedOffers() {
+    @DisplayName("searchProducts should construct valid headers, params to /affiliate/1.0/search.json and map v1 response payload")
+    void searchProducts_SuccessfulV1Response_ShouldMapNormalizedOffers() {
         String jsonResponse = """
                 {
-                  "products": [
+                  "productInfoList": [
                     {
-                      "productBaseInfo": {
+                      "productBaseInfoV1": {
                         "productIdentifier": {
                           "productId": "MOBFKYZ3HZXFGH2G"
                         },
@@ -97,22 +97,23 @@ class FlipkartProviderTest {
                           "isAvailable": true,
                           "productUrl": "https://dl.flipkart.com/dl/samsung?affid=test-aff-id",
                           "imageUrls": { "400x400": "https://img.fkcdn.com/mob.jpg" },
-                          "sellerName": "Appario Retail"
+                          "sellerName": "Appario Retail",
+                          "shippingInfo": {
+                            "shippingFees": { "amount": 0.00, "currency": "INR" },
+                            "estimatedDelivery": "Delivery in 2-3 business days"
+                          }
                         }
-                      },
-                      "shippingInfo": {
-                        "shippingFees": { "amount": 0.00, "currency": "INR" },
-                        "estimatedDelivery": "Delivery in 2-3 business days"
                       }
                     }
                   ]
                 }
                 """;
 
-        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search/json?query=samsung&resultCount=10"))
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=samsung&resultCount=10"))
                 .andExpect(method(HttpMethod.GET))
                 .andExpect(header("Fk-Affiliate-Id", "test-aff-id"))
                 .andExpect(header("Fk-Affiliate-Token", "test-aff-token"))
+                .andExpect(header("Accept", "application/json"))
                 .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
         List<NormalizedProductOffer> offers = provider.searchProducts("samsung", "12.9716", "77.5946");
@@ -140,21 +141,19 @@ class FlipkartProviderTest {
     }
 
     @Test
-    @DisplayName("searchProducts should map out-of-stock product correctly when inStock or isAvailable is false")
-    void searchProducts_OutOfStock_ShouldMapInStockFalse() {
+    @DisplayName("searchProducts should handle null/missing optional fields safely")
+    void searchProducts_MissingOptionalFields_ShouldMapSafelyWithDefaults() {
         String jsonResponse = """
                 {
-                  "products": [
+                  "productInfoList": [
                     {
-                      "productBaseInfo": {
-                        "productIdentifier": { "productId": "PROD123" },
+                      "productBaseInfoV1": {
+                        "productIdentifier": { "productId": "MINIMAL123" },
                         "productAttributes": {
-                          "title": "Out of Stock Item",
-                          "sellingPrice": { "amount": 100.00, "currency": "INR" },
-                          "maximumRetailPrice": { "amount": 100.00, "currency": "INR" },
-                          "inStock": false,
-                          "isAvailable": true,
-                          "productUrl": "http://fk.com/p1"
+                          "title": "Minimal Item",
+                          "sellingPrice": { "amount": 250.00, "currency": "INR" },
+                          "maximumRetailPrice": { "amount": 300.00, "currency": "INR" },
+                          "productUrl": "http://fk.com/minimal"
                         }
                       }
                     }
@@ -162,18 +161,44 @@ class FlipkartProviderTest {
                 }
                 """;
 
-        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search/json?query=item&resultCount=10"))
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=minimal&resultCount=10"))
                 .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
 
-        List<NormalizedProductOffer> offers = provider.searchProducts("item", "12.9716", "77.5946");
+        List<NormalizedProductOffer> offers = provider.searchProducts("minimal", "12.9716", "77.5946");
+
         assertThat(offers).hasSize(1);
-        assertThat(offers.get(0).inStock()).isFalse();
+        NormalizedProductOffer offer = offers.get(0);
+
+        assertThat(offer.price()).isEqualByComparingTo(new BigDecimal("250.00"));
+        assertThat(offer.mrp()).isEqualByComparingTo(new BigDecimal("300.00"));
+        assertThat(offer.discountPercentage()).isEqualByComparingTo(new BigDecimal("16.67")); // Calculated fallback
+        assertThat(offer.inStock()).isTrue(); // Defaults to true when null
+        assertThat(offer.sellerName()).isEqualTo("Flipkart Seller");
+        assertThat(offer.imageUrl()).isNull();
+        assertThat(offer.delivery().deliveryText()).isEqualTo("Standard delivery in 2-4 business days");
+        assertThat(offer.delivery().shippingFee()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("searchProducts should return empty list when productInfoList is empty")
+    void searchProducts_EmptyProductInfoList_ShouldReturnEmptyList() {
+        String jsonResponse = """
+                {
+                  "productInfoList": []
+                }
+                """;
+
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=unknown&resultCount=10"))
+                .andRespond(withSuccess(jsonResponse, MediaType.APPLICATION_JSON));
+
+        List<NormalizedProductOffer> offers = provider.searchProducts("unknown", "12.9716", "77.5946");
+        assertThat(offers).isEmpty();
     }
 
     @Test
     @DisplayName("searchProducts on HTTP 401/403 should throw ProviderException")
     void searchProducts_Http401_ShouldThrowProviderException() {
-        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search/json?query=milk&resultCount=10"))
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=milk&resultCount=10"))
                 .andRespond(withStatus(HttpStatus.UNAUTHORIZED));
 
         assertThatThrownBy(() -> provider.searchProducts("milk", "12.9716", "77.5946"))
@@ -184,7 +209,7 @@ class FlipkartProviderTest {
     @Test
     @DisplayName("searchProducts on HTTP 429 Rate Limit should throw ProviderException")
     void searchProducts_Http429_ShouldThrowProviderException() {
-        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search/json?query=milk&resultCount=10"))
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=milk&resultCount=10"))
                 .andRespond(withStatus(HttpStatus.TOO_MANY_REQUESTS));
 
         assertThatThrownBy(() -> provider.searchProducts("milk", "12.9716", "77.5946"))
@@ -195,7 +220,7 @@ class FlipkartProviderTest {
     @Test
     @DisplayName("searchProducts on HTTP 5xx Server Error should throw ProviderException")
     void searchProducts_Http500_ShouldThrowProviderException() {
-        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search/json?query=milk&resultCount=10"))
+        mockServer.expect(requestTo("https://affiliate-api.flipkart.net/affiliate/1.0/search.json?query=milk&resultCount=10"))
                 .andRespond(withStatus(HttpStatus.INTERNAL_SERVER_ERROR));
 
         assertThatThrownBy(() -> provider.searchProducts("milk", "12.9716", "77.5946"))

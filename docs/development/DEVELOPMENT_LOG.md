@@ -292,16 +292,20 @@ Phase 4C — Flipkart API Provider Integration
 `phase/week-4c-flipkart`
 
 ### What Changed
-- **Created Flipkart DTO Records (`com.quickbasket.dto.flipkart`)**: `FlipkartSearchResponse`, `FlipkartProductWrapper`, `FlipkartProductBaseInfo`, `FlipkartProductIdentifier`, `FlipkartProductAttributes`, `FlipkartPriceInfo`, `FlipkartShippingInfo`.
+- **Audited & Aligned Flipkart API v1.0 Contract**:
+  - Target Endpoint: Aligned endpoint to `/affiliate/1.0/search.json` (replacing `/affiliate/1.0/search/json`).
+  - Schema Hierarchy: Updated DTO records (`FlipkartSearchResponse`, `FlipkartProductWrapper`, `FlipkartProductBaseInfoV1`, `FlipkartProductAttributes`) to parse official root `productInfoList[]` wrapping `productBaseInfoV1` and `shippingInfo`.
+- **Created Flipkart DTO Records (`com.quickbasket.dto.flipkart`)**: `FlipkartSearchResponse`, `FlipkartProductWrapper`, `FlipkartProductBaseInfoV1`, `FlipkartProductIdentifier`, `FlipkartProductAttributes`, `FlipkartPriceInfo`, `FlipkartShippingInfo`.
 - **Created `FlipkartProvider.java`**: Implemented `ProductProvider` strategy with `providerCode = "FLIPKART"` and `platformType = PlatformType.ECOMMERCE`.
   - Configured via `quickbasket.providers.flipkart.*` properties (disabled when credentials empty).
   - Executed blocking HTTP calls via Spring 6 `RestClient` on Virtual Threads.
   - Implemented explicit HTTP status handling (`onStatus`) mapping 401/403, 429, 5xx, timeouts into `ProviderException`.
   - Normalized responses into `NormalizedProductOffer` with `DeliveryType.STANDARD`, `etaMinutes = null`, and preserved direct API product URLs.
 - **Added Comprehensive Unit & Integration Tests**:
-  - `FlipkartProviderTest`: Tested provider metadata, header/param construction, price/mrp/discount mapping, out-of-stock mapping, 401/403 auth errors, 429 rate limits, 500 server errors, timeouts, and disabled provider state via `MockRestServiceServer`.
+  - `FlipkartProviderTest`: Tested provider metadata, header/param construction, price/mrp/discount mapping, out-of-stock mapping, null/missing optional fields, empty `productInfoList`, 401/403 auth errors, 429 rate limits, 500 server errors, timeouts, and disabled provider state via `MockRestServiceServer`.
   - `ProductComparisonServiceTest`: Tested multi-provider search aggregation across Mock, QuickCommerce, and Flipkart providers.
 - **Updated Living Documentation**: Added ADR-014 in `DECISIONS.md`, updated `ARCHITECTURE.md`, `LEARNING.md`, and `ROADMAP.md`.
+
 
 ### Why
 To expand QuickBasket beyond hyper-local quick-commerce into traditional e-commerce marketplaces using official Flipkart Affiliate APIs without breaking core provider strategy or caching abstractions.

@@ -157,15 +157,17 @@
 ## ADR-014: Official Flipkart Affiliate API Provider Integration
 
 * **Status**: **ACCEPTED**
-* **Context**: QuickBasket requires integration with traditional e-commerce marketplaces alongside hyper-local quick-commerce apps. Flipkart provides an official Affiliate Search API (`GET https://affiliate-api.flipkart.net/affiliate/1.0/search/json`) protected by affiliate ID and token headers, returning national catalog items with standard multi-day courier delivery semantics.
+* **Context**: QuickBasket requires integration with traditional e-commerce marketplaces alongside hyper-local quick-commerce apps. Flipkart provides an official Affiliate Search v1.0 API (`GET https://affiliate-api.flipkart.net/affiliate/1.0/search.json`) protected by affiliate ID and token headers, returning national catalog items (`productInfoList` -> `productBaseInfoV1`) with standard multi-day courier delivery semantics.
 * **Decision**:
   1. **Provider Strategy (`FlipkartProvider`)**: Implement `ProductProvider` with `providerCode = "FLIPKART"` and `platformType = PlatformType.ECOMMERCE`. Configured under `quickbasket.providers.flipkart` (disabled by default when credentials are empty).
-  2. **Blocking I/O + Virtual Threads**: Execute Spring 6 `RestClient` blocking HTTP calls on Java 21 Virtual Threads (`spring.threads.virtual.enabled: true`) with explicit status classification (`onStatus`) mapping HTTP 401/403, 429, and 5xx into `ProviderException`.
-  3. **E-Commerce Delivery Semantics**: Populate `DeliveryEstimate` with `DeliveryType.STANDARD`, `etaMinutes = null`, and `deliveryText` from `shippingInfo.estimatedDelivery` (e.g. `"Delivery in 2-4 business days"`). Sub-hour ETA minutes are **never** fabricated.
-  4. **Direct URL Preservation**: Preserve the API-returned `productUrl` directly without manual query parameter mutation or string concatenation.
-  5. **Fault & Slice Cache Integration**: Leverage existing `ProviderSliceCacheService` (key `qb:provider:FLIPKART:<query>:<lat>:<lng>`) and `ProductComparisonService` fault isolation without modifying core orchestration logic.
-* **Rationale**: Preserves clean strategy pattern contracts, maintains sub-10ms aggregated search response times, insulates the core backend from external rate limits (20 req/sec), and provides clean multi-day shipping support.
+  2. **Official v1.0 API Contract**: Target endpoint `/affiliate/1.0/search.json` with query parameter `query` and `resultCount=10`, parsing `productInfoList` wrapping `productBaseInfoV1`.
+  3. **Blocking I/O + Virtual Threads**: Execute Spring 6 `RestClient` blocking HTTP calls on Java 21 Virtual Threads (`spring.threads.virtual.enabled: true`) with explicit status classification (`onStatus`) mapping HTTP 401/403, 429, and 5xx into `ProviderException`.
+  4. **E-Commerce Delivery Semantics**: Populate `DeliveryEstimate` with `DeliveryType.STANDARD`, `etaMinutes = null`, and `deliveryText` from `shippingInfo.estimatedDelivery` (e.g. `"Delivery in 2-4 business days"`). Sub-hour ETA minutes are **never** fabricated.
+  5. **Direct URL Preservation**: Preserve the API-returned `productUrl` directly without manual query parameter mutation or string concatenation.
+  6. **Fault & Slice Cache Integration**: Leverage existing `ProviderSliceCacheService` (key `qb:provider:FLIPKART:<query>:<lat>:<lng>`) and `ProductComparisonService` fault isolation without modifying core orchestration logic.
+* **Rationale**: Preserves clean strategy pattern contracts, complies strictly with Flipkart v1.0 API specification, maintains sub-10ms aggregated search response times, insulates the core backend from external rate limits (20 req/sec), and provides clean multi-day shipping support.
 * **Trade-Off**: E-commerce items return `etaMinutes = null`, requiring `BestOption` fastest calculations to filter non-null quick-commerce ETAs or fall back gracefully.
+
 
 
 

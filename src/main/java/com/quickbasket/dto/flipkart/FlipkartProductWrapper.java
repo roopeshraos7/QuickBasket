@@ -1,9 +1,8 @@
 package com.quickbasket.dto.flipkart;
 
 /**
- * Product item container wrapping product base info and shipping info.
+ * Product item container wrapping v1 product base info.
  */
 public record FlipkartProductWrapper(
-        FlipkartProductBaseInfo productBaseInfo,
-        FlipkartShippingInfo shippingInfo
+        FlipkartProductBaseInfoV1 productBaseInfoV1
 ) {}

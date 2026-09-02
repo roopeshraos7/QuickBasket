@@ -1,9 +1,9 @@
 package com.quickbasket.dto.flipkart;
 
 /**
- * Container wrapping product identifier and product attributes.
+ * Container wrapping v1 product identifier and product attributes from Flipkart Affiliate v1.0 API.
  */
-public record FlipkartProductBaseInfo(
+public record FlipkartProductBaseInfoV1(
         FlipkartProductIdentifier productIdentifier,
         FlipkartProductAttributes productAttributes
 ) {}

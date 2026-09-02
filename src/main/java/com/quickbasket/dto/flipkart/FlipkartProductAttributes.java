@@ -3,7 +3,7 @@ package com.quickbasket.dto.flipkart;
 import java.util.Map;
 
 /**
- * Product detail attributes returned by Flipkart Affiliate API.
+ * Product detail attributes returned by Flipkart Affiliate v1.0 API.
  */
 public record FlipkartProductAttributes(
         String title,
@@ -15,5 +15,6 @@ public record FlipkartProductAttributes(
         Boolean isAvailable,
         String productUrl,
         Map<String, String> imageUrls,
-        String sellerName
+        String sellerName,
+        FlipkartShippingInfo shippingInfo
 ) {}
