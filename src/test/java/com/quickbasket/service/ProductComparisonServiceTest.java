@@ -40,6 +40,9 @@ class ProductComparisonServiceTest {
     private ProductProvider flipkartProvider;
 
     @Mock
+    private ProductProvider amazonProvider;
+
+    @Mock
     private ProductCatalogService catalogService;
 
     @Mock
@@ -65,8 +68,14 @@ class ProductComparisonServiceTest {
         lenient().when(flipkartProvider.getPlatformType()).thenReturn(PlatformType.ECOMMERCE);
         lenient().when(flipkartProvider.getTimeoutMs()).thenReturn(2000L);
 
+        lenient().when(amazonProvider.supports(anyString())).thenReturn(true);
+        lenient().when(amazonProvider.isEnabled()).thenReturn(true);
+        lenient().when(amazonProvider.getProviderCode()).thenReturn("AMAZON");
+        lenient().when(amazonProvider.getPlatformType()).thenReturn(PlatformType.ECOMMERCE);
+        lenient().when(amazonProvider.getTimeoutMs()).thenReturn(1500L);
+
         comparisonService = new ProductComparisonService(
-                List.of(provider1, provider2, flipkartProvider),
+                List.of(provider1, provider2, flipkartProvider, amazonProvider),
                 catalogService,
                 sliceCacheService,
                 "all"
@@ -90,6 +99,7 @@ class ProductComparisonServiceTest {
         when(provider1.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of(offer1));
         when(provider2.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of(offer2));
         when(flipkartProvider.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of());
+        when(amazonProvider.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of());
 
         ProductSearchResponse response = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
 
@@ -107,6 +117,7 @@ class ProductComparisonServiceTest {
         verify(sliceCacheService).putSlice("MOCK", "Milk", "12.9716", "77.5946", List.of(offer1));
         verify(sliceCacheService).putSlice("QUICKCOMMERCE_API", "Milk", "12.9716", "77.5946", List.of(offer2));
         verify(sliceCacheService).putSlice("FLIPKART", "Milk", "12.9716", "77.5946", List.of());
+        verify(sliceCacheService).putSlice("AMAZON", "Milk", "12.9716", "77.5946", List.of());
 
         // Verify DB persistence occurred for fresh offers
         verify(catalogService).saveOffers(eq("Milk"), anyList());
@@ -123,6 +134,7 @@ class ProductComparisonServiceTest {
         when(sliceCacheService.getSlice("MOCK", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of(offer1)));
         when(sliceCacheService.getSlice("QUICKCOMMERCE_API", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of()));
         when(sliceCacheService.getSlice("FLIPKART", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of()));
+        when(sliceCacheService.getSlice("AMAZON", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of()));
 
         ProductSearchResponse response = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
 
@@ -134,58 +146,62 @@ class ProductComparisonServiceTest {
         verify(provider1, never()).searchProducts(anyString(), anyString(), anyString());
         verify(provider2, never()).searchProducts(anyString(), anyString(), anyString());
         verify(flipkartProvider, never()).searchProducts(anyString(), anyString(), anyString());
+        verify(amazonProvider, never()).searchProducts(anyString(), anyString(), anyString());
 
         // Verify DB persistence was NOT invoked on cache hit
         verify(catalogService, never()).saveOffers(anyString(), anyList());
     }
 
     @Test
-    @DisplayName("searchProducts should handle Mixed HIT and MISS cleanly across QuickCommerce and Flipkart providers")
+    @DisplayName("searchProducts should handle Mixed HIT and MISS cleanly across QuickCommerce, Flipkart, and Amazon providers")
     void searchProducts_MixedHitAndMiss() {
         NormalizedProductOffer offerCached = new NormalizedProductOffer(
                 "BLINKIT", "Blinkit", PlatformType.QUICK_COMMERCE, new BigDecimal("54.00"), new BigDecimal("56.00"),
                 new BigDecimal("3.57"), true, DeliveryEstimate.instant(14), null, "http://link1", "http://img1"
         );
 
-        NormalizedProductOffer offerFlipkart = new NormalizedProductOffer(
-                "FLIPKART", "Flipkart", PlatformType.ECOMMERCE, new BigDecimal("45.00"), new BigDecimal("50.00"),
-                new BigDecimal("10.00"), true, new DeliveryEstimate(DeliveryType.STANDARD, null, "In 2 days", BigDecimal.ZERO),
-                "Appario", "http://fk.com/p", "http://fk.com/img"
+        NormalizedProductOffer offerAmazon = new NormalizedProductOffer(
+                "AMAZON", "Amazon", PlatformType.ECOMMERCE, new BigDecimal("42.00"), new BigDecimal("50.00"),
+                new BigDecimal("16.00"), true, new DeliveryEstimate(DeliveryType.STANDARD, null, null, null),
+                "Appario", "http://amzn.in/p", "http://amzn.in/img"
         );
 
-        // Provider 1 (MOCK): HIT
+        // MOCK: HIT
         when(sliceCacheService.getSlice("MOCK", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of(offerCached)));
-        // Provider 2 (QUICKCOMMERCE_API): HIT (empty)
+        // QUICKCOMMERCE_API: HIT (empty)
         when(sliceCacheService.getSlice("QUICKCOMMERCE_API", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of()));
-        // FlipkartProvider: MISS
-        when(sliceCacheService.getSlice("FLIPKART", "Milk", "12.9716", "77.5946")).thenReturn(Optional.empty());
-        when(flipkartProvider.searchProducts("Milk", "12.9716", "77.5946")).thenReturn(List.of(offerFlipkart));
+        // FLIPKART: HIT (empty)
+        when(sliceCacheService.getSlice("FLIPKART", "Milk", "12.9716", "77.5946")).thenReturn(Optional.of(List.of()));
+        // AMAZON: MISS
+        when(sliceCacheService.getSlice("AMAZON", "Milk", "12.9716", "77.5946")).thenReturn(Optional.empty());
+        when(amazonProvider.searchProducts("Milk", "12.9716", "77.5946")).thenReturn(List.of(offerAmazon));
 
         ProductSearchResponse response = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
 
         assertThat(response).isNotNull();
         assertThat(response.totalResults()).isEqualTo(2);
 
-        // Flipkart should be cheapest at 45.00
-        assertThat(response.bestOption().cheapestPlatformCode()).isEqualTo("FLIPKART");
-        assertThat(response.bestOption().cheapestPrice()).isEqualTo(new BigDecimal("45.00"));
+        // Amazon should be cheapest at 42.00
+        assertThat(response.bestOption().cheapestPlatformCode()).isEqualTo("AMAZON");
+        assertThat(response.bestOption().cheapestPrice()).isEqualTo(new BigDecimal("42.00"));
 
-        // Blinkit should be fastest at 14 mins (Flipkart has null etaMinutes)
+        // Blinkit should be fastest at 14 mins (Amazon has null etaMinutes)
         assertThat(response.bestOption().fastestPlatformCode()).isEqualTo("BLINKIT");
         assertThat(response.bestOption().fastestEtaMinutes()).isEqualTo(14);
 
-        // Only Flipkart should be invoked
+        // Only Amazon should be invoked
         verify(provider1, never()).searchProducts(anyString(), anyString(), anyString());
         verify(provider2, never()).searchProducts(anyString(), anyString(), anyString());
-        verify(flipkartProvider).searchProducts("Milk", "12.9716", "77.5946");
+        verify(flipkartProvider, never()).searchProducts(anyString(), anyString(), anyString());
+        verify(amazonProvider).searchProducts("Milk", "12.9716", "77.5946");
 
-        // DB should be saved ONLY for fresh Flipkart offers
-        verify(catalogService).saveOffers("Milk", List.of(offerFlipkart));
+        // DB should be saved ONLY for fresh Amazon offers
+        verify(catalogService).saveOffers("Milk", List.of(offerAmazon));
     }
 
     @Test
-    @DisplayName("searchProducts should isolate Flipkart provider failure and record failed provider code without caching failure")
-    void searchProducts_ShouldIsolateProviderFailureAndReturnPartialResults() {
+    @DisplayName("searchProducts should isolate Amazon provider failure and record failed provider code without caching failure")
+    void searchProducts_ShouldIsolateAmazonFailureAndReturnPartialResults() {
         NormalizedProductOffer offer1 = new NormalizedProductOffer(
                 "BLINKIT", "Blinkit", PlatformType.QUICK_COMMERCE, new BigDecimal("54.00"), new BigDecimal("56.00"),
                 new BigDecimal("3.57"), true, DeliveryEstimate.instant(14), null, "http://link1", "http://img1"
@@ -194,16 +210,17 @@ class ProductComparisonServiceTest {
         when(sliceCacheService.getSlice(anyString(), anyString(), anyString(), anyString())).thenReturn(Optional.empty());
         when(provider1.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of(offer1));
         when(provider2.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of());
-        when(flipkartProvider.searchProducts(anyString(), anyString(), anyString())).thenThrow(new RuntimeException("Flipkart API rate limit exceeded"));
+        when(flipkartProvider.searchProducts(anyString(), anyString(), anyString())).thenReturn(List.of());
+        when(amazonProvider.searchProducts(anyString(), anyString(), anyString())).thenThrow(new RuntimeException("Amazon Creators API rate limit exceeded"));
 
         ProductSearchResponse response = comparisonService.searchProducts("Milk", "12.9716", "77.5946");
 
         assertThat(response).isNotNull();
         assertThat(response.totalResults()).isEqualTo(1);
         assertThat(response.offers().get(0).platformCode()).isEqualTo("BLINKIT");
-        assertThat(response.failedProviders()).containsExactly("FLIPKART");
+        assertThat(response.failedProviders()).containsExactly("AMAZON");
 
-        // Verify Flipkart failure slice WAS NOT cached
-        verify(sliceCacheService, never()).putSlice(eq("FLIPKART"), anyString(), anyString(), anyString(), anyList());
+        // Verify Amazon failure slice WAS NOT cached
+        verify(sliceCacheService, never()).putSlice(eq("AMAZON"), anyString(), anyString(), anyString(), anyList());
     }
 }

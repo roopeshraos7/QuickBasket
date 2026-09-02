@@ -324,7 +324,51 @@ To expand QuickBasket beyond hyper-local quick-commerce into traditional e-comme
 - Mapping e-commerce multi-day shipping timelines (`DeliveryEstimate`) alongside sub-hour quick-commerce ETAs.
 
 ### Next Step
-Wait for explicit instruction to proceed to Phase 4D (Amazon Creators API Provider Integration).
+Commence Phase 4D Amazon Creators API provider integration.
+
+---
+
+## 2026-09-03 — Phase 4D: Official Amazon Creators API Provider Integration
+
+### Phase
+Phase 4D — Amazon Creators API Provider Integration
+
+### Branch
+`phase/week-4d-amazon`
+
+### What Changed
+- **Created Amazon DTO Records (`com.quickbasket.dto.amazon`)**: `AmazonSearchRequest`, `AmazonSearchResponse`, `AmazonSearchResult`, `AmazonItem`, `AmazonItemInfo`, `AmazonTitle`, `AmazonImages`, `AmazonImageContainer`, `AmazonImage`, `AmazonOffersV2`, `AmazonListing`, `AmazonPrice`, `AmazonMoney`, `AmazonAvailability`, `AmazonMerchantInfo`, `AmazonTokenResponse`.
+- **Created `AmazonTokenService.java`**: Dedicated OAuth 2.0 Client Credentials token management service fetching access tokens from LWA endpoint (`https://api.amazon.co.in/auth/o2/token`) with thread-safe in-memory caching and 5-minute expiry safety margin.
+- **Created `AmazonCreatorsApiProvider.java`**: Implemented `ProductProvider` strategy with `providerCode = "AMAZON"` and `platformType = PlatformType.ECOMMERCE`.
+  - Configured via `quickbasket.providers.amazon.*` properties.
+  - Executed `POST /catalog/v1/searchItems` with lowerCamelCase request payload and headers `Authorization: Bearer <token>`, `Content-Type: application/json`, and `x-marketplace: www.amazon.in`.
+  - Parsed `offersV2.listings` selecting `isBuyBoxWinner` listing.
+  - Normalized responses into `NormalizedProductOffer` with `DeliveryType.STANDARD`, `etaMinutes = null`, and direct detail page URLs.
+- **Added Comprehensive Unit & Integration Tests**:
+  - `AmazonTokenServiceTest`: Tested OAuth token acquisition, thread-safe caching, token reuse, 401 token errors, and missing credentials handling.
+  - `AmazonCreatorsApiProviderTest`: Tested provider metadata, lowerCamelCase JSON body generation, header construction, ASIN/title/price/savingBasis/discount/stock/seller/image/URL mapping, out-of-stock mapping, HTTP 400, 401, 429, 500 errors via `MockRestServiceServer`.
+  - `ProductComparisonServiceTest`: Tested multi-provider search aggregation across Mock, QuickCommerce, Flipkart, and Amazon providers.
+- **Updated Living Documentation**: Added ADR-015 in `DECISIONS.md`, updated `ARCHITECTURE.md`, `LEARNING.md`, and `ROADMAP.md`.
+
+### Why
+To complete Phase 4 provider coverage by integrating Amazon using current official Creators API and OAuth 2.0 authentication without modifying existing provider, caching, or persistence abstractions.
+
+### Technologies
+- OAuth 2.0 Client Credentials (LWA - Login with Amazon)
+- Spring 6 `RestClient` + Java 21 Virtual Threads
+- LowerCamelCase REST Request/Response Mapping
+
+### Important Decisions
+- **ADR-015**: Official Amazon Creators API integration with `providerCode = "AMAZON"`, `platformType = ECOMMERCE`, `AmazonTokenService` OAuth 2.0 token caching, lowerCamelCase `POST /catalog/v1/searchItems`, Buy Box offer selection, and direct detail page URL preservation.
+
+### What I Learned
+- OAuth 2.0 Client Credentials token management and thread-safe caching in Java.
+- Amazon Creators API lowerCamelCase contract vs legacy PA-API.
+- Multi-provider virtual-thread aggregation combining 4 distinct provider integrations (`MOCK`, `QUICKCOMMERCE_API`, `FLIPKART`, `AMAZON`).
+
+### Next Step
+All Phase 4 provider architecture milestones complete. Await user instructions for next phase.
+
 
 
 

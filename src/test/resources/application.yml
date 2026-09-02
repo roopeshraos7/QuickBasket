@@ -46,3 +46,13 @@ quickbasket:
       base-url: http://localhost:8089
       timeout-ms: 2000
       result-count: 10
+    amazon:
+      enabled: false
+      client-id: ${AMAZON_CLIENT_ID:}
+      client-secret: ${AMAZON_CLIENT_SECRET:}
+      partner-tag: ${AMAZON_PARTNER_TAG:}
+      marketplace: ${AMAZON_MARKETPLACE:www.amazon.in}
+      base-url: http://localhost:8089
+      token-url: http://localhost:8089/auth/o2/token
+      timeout-ms: 1500
+      item-count: 10

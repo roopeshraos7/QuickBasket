@@ -49,6 +49,16 @@ quickbasket:
       base-url: https://affiliate-api.flipkart.net
       timeout-ms: 2000
       result-count: 10
+    amazon:
+      enabled: false
+      client-id: ${AMAZON_CLIENT_ID:}
+      client-secret: ${AMAZON_CLIENT_SECRET:}
+      partner-tag: ${AMAZON_PARTNER_TAG:}
+      marketplace: ${AMAZON_MARKETPLACE:www.amazon.in}
+      base-url: https://creatorsapi.amazon
+      token-url: ${AMAZON_TOKEN_URL:https://api.amazon.co.in/auth/o2/token}
+      timeout-ms: 1500
+      item-count: 10
 
 springdoc:
   api-docs:

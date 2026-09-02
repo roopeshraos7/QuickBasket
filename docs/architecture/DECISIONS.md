@@ -168,6 +168,23 @@
 * **Rationale**: Preserves clean strategy pattern contracts, complies strictly with Flipkart v1.0 API specification, maintains sub-10ms aggregated search response times, insulates the core backend from external rate limits (20 req/sec), and provides clean multi-day shipping support.
 * **Trade-Off**: E-commerce items return `etaMinutes = null`, requiring `BestOption` fastest calculations to filter non-null quick-commerce ETAs or fall back gracefully.
 
+---
+
+## ADR-015: Official Amazon Creators API Provider Integration
+
+* **Status**: **ACCEPTED**
+* **Context**: QuickBasket requires integration with Amazon's marketplace using the current official Amazon Creators API (`POST /catalog/v1/searchItems`) via OAuth 2.0 Client Credentials.
+* **Decision**:
+  1. **Provider Strategy (`AmazonCreatorsApiProvider`)**: Implement `ProductProvider` with `providerCode = "AMAZON"` and `platformType = PlatformType.ECOMMERCE`. Configured under `quickbasket.providers.amazon`.
+  2. **OAuth 2.0 Token Management (`AmazonTokenService`)**: Dedicated Spring `@Service` managing OAuth 2.0 token requests to Login with Amazon (LWA) token endpoint (`https://api.amazon.co.in/auth/o2/token`). Tokens are cached locally in memory with a 5-minute expiry safety margin and refreshed thread-safely when expired.
+  3. **LowerCamelCase SearchItems Contract**: Send lowerCamelCase JSON search payload to `POST https://creatorsapi.amazon/catalog/v1/searchItems` with headers `Authorization: Bearer <token>`, `Content-Type: application/json`, and `x-marketplace: www.amazon.in`.
+  4. **Buy Box Offer Selection**: Parse `offersV2.listings` selecting the listing marked `isBuyBoxWinner == true` (or first listing). Map price, `savingBasis` (MRP), availability (`IN_STOCK` / `INSTOCK` / `AVAILABLE`), merchant name, primary image URL, and direct detail page URL.
+  5. **Direct URL Preservation**: Preserve API-returned `detailPageURL` directly without manual query parameter mutation or URL generation.
+  6. **Delivery Semantics**: Populate `DeliveryEstimate` with `DeliveryType.STANDARD`, `etaMinutes = null`, `deliveryText = null`, and `shippingFee = null` without fabricating shipping ETAs.
+* **Rationale**: Adheres to official Creators API specifications, ensures secure LWA OAuth token management without token stampedes, insulates QuickBasket from rate limits, and provides clean e-commerce offer normalization.
+* **Trade-Off**: In-memory token cache is node-local (sufficient for modular monolith); multi-node scaling would transition token cache to Redis if needed.
+
+
 
 
 
