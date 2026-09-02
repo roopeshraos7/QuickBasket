@@ -196,7 +196,46 @@ To optimize search response latency (from ~500ms to sub-10ms) and protect third-
 - Custom `CacheErrorHandler` implementation for fault-tolerant cache degradation.
 
 ### Next Step
-Wait for explicit instruction to proceed to Phase 4 (User Authentication, Watchlists & Price Drop Alerts).
+Commence Phase 4A implementation on phase/week-4a-provider-architecture branch.
+
+---
+
+## 2026-09-02 — Phase 4A: Integration Provider Identity vs. Consumer Platform Identity Refinement
+
+### Phase
+Phase 4A — Provider Identity & Concurrency Infrastructure Refactoring
+
+### Branch
+`phase/week-4a-provider-architecture`
+
+### What Changed
+- Refined provider identity model separating **Integration Provider Identity** (`providerCode`: `MOCK`, `QUICKCOMMERCE_API`, `FLIPKART`, `AMAZON`) from **Consumer Platform Identity** (`platformCode`: `BLINKIT`, `ZEPTO`, `INSTAMART`, `BIGBASKET`, `FLIPKART`, `AMAZON`).
+- Updated `QuickCommerceApiProvider.java`:
+  - `getProviderCode()` returns `"QUICKCOMMERCE_API"`.
+  - Updated `@Value` configuration property bindings to `quickbasket.providers.quickcommerce-api.enabled` and `quickbasket.providers.quickcommerce-api.timeout-ms`.
+  - Updated `supports(...)` to support `"quickcommerce_api"`, `"quickcommerce-api"`, `"quickcommerce"`, `"api"`, and `"all"`.
+- Updated `application.yml` and `test/resources/application.yml`:
+  - Renamed `quickbasket.providers.quickcommerce` to `quickbasket.providers.quickcommerce-api`.
+- Added ADR-012 in `docs/architecture/DECISIONS.md` documenting Integration Provider Identity vs. Consumer Platform Identity.
+- Updated `docs/learning/LEARNING.md` and `docs/architecture/ARCHITECTURE.md`.
+
+### Why
+To prepare QuickBasket for Phase 4B per-provider Redis slice caching (`qb:provider:QUICKCOMMERCE_API:<query>`) and Phase 4C/4D direct platform integrations (`AMAZON`, `FLIPKART`), ensuring provider timeouts, failure reports (`failedProviders`), and cache keys reflect integration source identity cleanly.
+
+### Technologies
+- Spring Boot 3.2 Configuration Binding
+- Java 21 Record DTO & Strategy Pattern
+
+### Important Decisions
+- **ADR-012**: Integration Provider Identity (`providerCode`) uniquely identifies the Spring bean source executed by `ProductComparisonService`, while `platformCode` on `NormalizedProductOffer` identifies the specific consumer retail marketplace.
+
+### What I Learned
+- Structuring multi-tenant aggregator provider identity vs retail platform identity.
+- Clean Spring configuration property naming conventions for provider beans.
+
+### Next Step
+Wait for explicit instruction to proceed to Phase 4B (Per-Provider Redis Slice Caching).
+
 
 
 

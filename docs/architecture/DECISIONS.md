@@ -123,6 +123,21 @@
 * **Rationale**: Preserves clean API contracts, guarantees sub-second response times across 6+ providers, and insulates the backend from external API eligibility blocks.
 * **Trade-Off**: Per-provider Redis caching requires pipeline/MGET assembly in `ProductComparisonService`.
 
+---
+
+## ADR-012: Integration Provider Identity vs. Consumer Platform Identity
+
+* **Status**: **ACCEPTED**
+* **Context**: QuickBasket integrates both multi-platform aggregator APIs (e.g., QuickCommerceAPI.com returning Blinkit, Zepto, Instamart) and direct platform integrations (e.g. Amazon, Flipkart). We need a clear architectural separation between upstream integration sources and downstream consumer marketplaces to ensure accurate timeout configuration, fault isolation reporting (`failedProviders`), and future per-provider Redis slice keying (`qb:provider:<provider_code>:<query>`).
+* **Decision**:
+  1. **Provider Identity (`providerCode`)**: Unique code representing the specific upstream integration source bean executed by `ProductComparisonService` (e.g. `MOCK`, `QUICKCOMMERCE_API`, `FLIPKART`, `AMAZON`). Configured under `quickbasket.providers.<provider-code>`, loaded into `ProductProvider.getProviderCode()`, and returned in `failedProviders` when an integration fails.
+  2. **Platform Identity (`platformCode`)**: Unique code on `NormalizedProductOffer` representing the actual retail marketplace (e.g. `BLINKIT`, `ZEPTO`, `INSTAMART`, `BIGBASKET`, `FLIPKART`, `AMAZON`).
+  3. **Aggregator Strategy**: Aggregator integration beans (such as `QuickCommerceApiProvider`) remain single `ProductProvider` beans while producing offers for multiple consumer platforms (`BLINKIT`, `ZEPTO`, `INSTAMART`).
+* **Rationale**: Insulates API consumer fault reporting and Redis slice caching key definitions from vendor aggregation topologies while preserving individual consumer platform identification on offer records.
+* **Trade-Off**: If an upstream aggregator API fails, `failedProviders` reports the integration code (`QUICKCOMMERCE_API`) rather than individual downstream platforms unless the aggregator API exposes platform-level status metadata.
+
+
+
 
 
 

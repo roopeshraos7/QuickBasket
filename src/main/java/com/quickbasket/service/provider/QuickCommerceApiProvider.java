@@ -17,6 +17,7 @@ import java.util.List;
 
 /**
  * Third-party QuickCommerceAPI.com provider integration.
+ * Represents an external aggregator integration source (QUICKCOMMERCE_API).
  */
 @Component
 public class QuickCommerceApiProvider implements ProductProvider {
@@ -32,8 +33,8 @@ public class QuickCommerceApiProvider implements ProductProvider {
             RestClient.Builder restClientBuilder,
             @Value("${quickcommerce.api.base-url:https://api.quickcommerceapi.com}") String baseUrl,
             @Value("${quickcommerce.api.token:mock-token}") String apiToken,
-            @Value("${quickbasket.providers.quickcommerce.enabled:false}") boolean enabled,
-            @Value("${quickbasket.providers.quickcommerce.timeout-ms:1500}") long timeoutMs
+            @Value("${quickbasket.providers.quickcommerce-api.enabled:false}") boolean enabled,
+            @Value("${quickbasket.providers.quickcommerce-api.timeout-ms:1500}") long timeoutMs
     ) {
         this.restClient = restClientBuilder.baseUrl(baseUrl).build();
         this.apiToken = apiToken;
@@ -73,12 +74,18 @@ public class QuickCommerceApiProvider implements ProductProvider {
 
     @Override
     public boolean supports(String providerCode) {
-        return "quickcommerce".equalsIgnoreCase(providerCode) || "api".equalsIgnoreCase(providerCode) || "all".equalsIgnoreCase(providerCode);
+        if (providerCode == null) return false;
+        String normalized = providerCode.trim().toLowerCase();
+        return "quickcommerce_api".equals(normalized) ||
+                "quickcommerce-api".equals(normalized) ||
+                "quickcommerce".equals(normalized) ||
+                "api".equals(normalized) ||
+                "all".equals(normalized);
     }
 
     @Override
     public String getProviderCode() {
-        return "QUICKCOMMERCE";
+        return "QUICKCOMMERCE_API";
     }
 
     @Override

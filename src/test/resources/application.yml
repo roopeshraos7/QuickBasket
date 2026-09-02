@@ -36,6 +36,6 @@ quickbasket:
     mock:
       enabled: true
       timeout-ms: 1500
-    quickcommerce:
+    quickcommerce-api:
       enabled: false
       timeout-ms: 1500
